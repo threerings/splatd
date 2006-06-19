@@ -98,7 +98,7 @@ class Writer(homeDirectory.Writer):
         # Make sure the home directory exists, and make it if config says to
         if (not os.path.isdir(home)):
             if (context.makehome == True):
-                homeDirectory.Writer.work(self, context.homeDirContext, ldapEntry, modified)
+                homeDirectory.Writer.work(self, context.homeDirContext, ldapEntry)
             else:
                 # If we weren't told to make homedir, log a warning and quit
                 logger.warning("SSH keys not being written because home directory %s does not exist. To have this home directory created automatically by this plugin, set the makehome option to true in your splat configuration file, or use the homeDirectory plugin." % home)
@@ -109,27 +109,24 @@ class Writer(homeDirectory.Writer):
         tmpfilename = "%s/.ssh/authorized_keys.tmp" % home
         filename = "%s/.ssh/authorized_keys" % home
 
-        # Make sure the modifyTimestamp entry exists before looking at it
-        if (ldapEntry.attributes.has_key('modifyTimestamp')):
-    
-            # stat() the key, check if it is outdated
-            try:
-                keyTime = os.stat(filename)[stat.ST_MTIME]
-                # Convert LDAP UTC time to seconds since epoch
-                entryTime = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
-    
-                # If the entry is older than the key, skip it.
-                # This will only occur on the very first daemon iteration,
-                # where modified is always 'True'
-                if (entryTime < keyTime):
-                    logger.info("Skipping %s, up-to-date" % filename)
-                    return
-    
-            except OSError:
-                # File doesn't exist, or some other error.
-                # Ignore the exception, it'll be caught again
-                # and reported below.
-                pass
+        # stat() the key, check if it is outdated
+        try:
+            keyTime = os.stat(filename)[stat.ST_MTIME]
+            # Convert LDAP UTC time to seconds since epoch
+            entryTime = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
+
+            # If the entry is older than the key, skip it.
+            # This will only occur on the very first daemon iteration,
+            # where modified is always 'True'
+            if (entryTime < keyTime):
+                logger.info("Skipping %s, up-to-date" % filename)
+                return
+
+        except OSError:
+            # File doesn't exist, or some other error.
+            # Ignore the exception, it'll be caught again
+            # and reported below.
+            pass
 
         logger.info("Writing key to %s" % filename)
 

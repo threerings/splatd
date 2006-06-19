@@ -7,7 +7,7 @@
 
     <legalnotice>
       <para>The content of this guide is the original work of Three Rings
-      Design, Inc, Landon Fuller, and Nick Barkas. All rights reserved.</para>
+      Design, Inc and Landon Fuller. All rights reserved.</para>
 
       <para>The XML and CSS used to generate this guide is based on the work
       of Will Barton and Michael Maibaum, as contributed to the DarwinPorts
@@ -17,7 +17,7 @@
     <copyright>
       <year>2005 - 2006</year>
 
-      <holder>Landon Fuller, Nick Barkas, and Three Rings Design, Inc.</holder>
+      <holder>Landon Fuller and Three Rings Design, Inc.</holder>
     </copyright>
 
     <copyright>
@@ -63,11 +63,11 @@
           </listitem>
 
           <listitem>
-            <para><ulink url="http://twistedmatrix.com">Twisted Networking Framework</ulink></para>
+            <para><ulink url="???">Twisted Networking Framework</ulink></para>
           </listitem>
 
           <listitem>
-            <para><ulink url="http://python-ldap.sourceforge.net">Python LDAP</ulink></para>
+            <para><ulink url="???">Python LDAP</ulink></para>
           </listitem>
 
           <listitem>
@@ -102,19 +102,422 @@
 
     <sect1>
       <title>Configuring Splat</title>
-      <sect2>
-        <title>splat.conf</title>
-        <para>Splat is configured by a configuration file usually named 
-        <filename>splat.conf</filename>. See the example config below (this
-        config file is also included with the Splat source), and the <link
-        linkend="splat.conf_man">splat.conf man page</link>.</para>
 
-        <example>
-          <title>Example splat.conf</title>
-          <programlisting>
-<xi:include href="../../splat.conf" parse="text" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-          </programlisting>
-         </example>
+      <sect2>
+        <title>Introduction</title>
+
+        <para>The Splat configuration file is composed of three different
+        section types: <itemizedlist>
+            <listitem>
+              <para>LDAP Configuration</para>
+            </listitem>
+
+            <listitem>
+              <para>Service Helper Configuration</para>
+            </listitem>
+
+            <listitem>
+              <para>Logging Configuration</para>
+            </listitem>
+          </itemizedlist> The configuration uses an Apache-style syntax:
+        <programlisting>
+&lt;LDAP&gt;
+    # The LDAP Server configuration.
+    # URI of the server(s)
+    URI         ldaps://ldap1.example.com
+    # The default search base for the server
+    BaseDN      dc=example,dc=com
+&lt;/LDAP&gt;
+                    </programlisting></para>
+      </sect2>
+
+      <sect2>
+        <title>LDAP Configuration</title>
+
+        <para>The <computeroutput>LDAP</computeroutput> section defines
+        connection parameters for your LDAP server, and may appear once within
+        a Splat configuration file. If you make use of TLS, you will need to
+        ensure that the appropriate settings are enabled in your system
+        <filename>ldap.conf</filename>.</para>
+
+        <sect3>
+          <title>LDAP Configuration Options</title>
+
+          <variablelist>
+            <varlistentry>
+              <term>URI</term>
+
+              <listitem>
+                <para>URI of the LDAP server(s).</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>BaseDN</term>
+
+              <listitem>
+                <para>Default Search Base DN.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>BindDN</term>
+
+              <listitem>
+                <para>LDAP Bind DN. If omitted, Slap will use an anonymous
+                bind.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>Password</term>
+
+              <listitem>
+                <para>LDAP Bind Password.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+      </sect2>
+
+      <sect2>
+        <title>Logging Configuration</title>
+
+        <para>The <computeroutput>Logging</computeroutput> section configures
+        logging for the Splat daemon. It is composed of any number of
+        <computeroutput>syslog</computeroutput> or
+        <computeroutput>logfile</computeroutput> subsections.</para>
+
+        <sect3>
+          <title>Syslog Configuration Options</title>
+
+          <variablelist>
+            <varlistentry>
+              <term>Level</term>
+
+              <listitem>
+                <para>Log Verbosity. One of: debug, info, warning, error,
+                critical</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>Facility</term>
+
+              <listitem>
+                <para>Syslog Facility.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>Address</term>
+
+              <listitem>
+                <para>Address of syslog server, or pathname to syslog socket.
+                This varies between hosts. FreeBSD's syslog socket is located
+                at <filename>/var/run/log</filename>.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3>
+          <title>Logfile Configuration Options</title>
+
+          <variablelist>
+            <varlistentry>
+              <term>Level</term>
+
+              <listitem>
+                <para>Log Verbosity. One of: debug, info, warning, error,
+                critical</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>Path</term>
+
+              <listitem>
+                <para>Path to log file, or reference to Python file object
+                such as STDOUT.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+      </sect2>
+
+      <sect2>
+        <title>Service Helper Configuration</title>
+
+        <para>The <computeroutput>Service</computeroutput> section configures
+        Splat's service helper modules. It is composed service-specific
+        settings, including any number of
+        <computeroutput>Option</computeroutput>, and
+        <computeroutput>Group</computeroutput> subsections. Group and Service
+        names (such as <emphasis>UserSSH</emphasis> or
+        <emphasis>Administrators</emphasis>) must be unique within their
+        scope, but are not interpreted by Splat in any other way.</para>
+
+        <para><computeroutput>Option</computeroutput> subsections may be
+        specified in both the Service section and the Group subsection.
+        Options are used to set and unset helper-specific settings. Module
+        options are documented in the module-specific documentation. Example:
+        <programlisting>
+&lt;Option mingid&gt;
+    # Do not write keys for users with a GID less than mingid
+    Value 1000
+&lt;/Option&gt; 
+    
+# Unset the Command option
+&lt;Option command/&gt;
+</programlisting></para>
+
+        <sect3>
+          <title>Service Configuration Options</title>
+
+          <variablelist>
+            <varlistentry>
+              <term>Helper</term>
+
+              <listitem>
+                <para>Python Helper Module. Example:
+                splat.helpers.sshPublicKeys</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>Frequency</term>
+
+              <listitem>
+                <para>Frequency at which helper is invoked. Units may be
+                specified in hours (h), minutes (m), or seconds (s).</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>SearchBase</term>
+
+              <listitem>
+                <para>LDAP search base. If left unspecified, defaults to the
+                BaseDN specified in the LDAP configuration section.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>SearchFilter</term>
+
+              <listitem>
+                <para>LDAP search filter. All records that match this filter
+                (and, optionally, are members of a permitted group) will be
+                passed to the service helper module.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>RequireGroup (yes/no)</term>
+
+              <listitem>
+                <para>Require that returned entries match one of the specified
+                Groups.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3>
+          <title>Group Configuration Options</title>
+
+          <variablelist>
+            <varlistentry>
+              <term>SearchBase</term>
+
+              <listitem>
+                <para>LDAP search base. If left unspecified, defaults to the
+                BaseDN specified in the LDAP configuration section.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>SearchFilter</term>
+
+              <listitem>
+                <para>LDAP search filter. All records that match this filter
+                will determine this groups membership. The filter should
+                return groupOfUniqueNames or groupOfNames objects. I suggest
+                using RFC2307bis to combine posixGroup and
+                groupOfUniqueName.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>MemberAttribute</term>
+
+              <listitem>
+                <para>LDAP attribute used to store member DNs. Defaults to
+                uniqueMember.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+      </sect2>
+
+      <sect2>
+        <title>Example Configuration File</title>
+
+        <para>An example configuration follows. The same configuration file is
+        included with the distribution as
+        <filename>splat.conf</filename>.</para>
+
+        <programlisting>
+&lt;LDAP&gt;
+    # The LDAP Server configuration.
+    # URI of the server
+    URI         ldaps://ldap1.example.com
+    # The default search base for the server
+    BaseDN      dc=example,dc=com
+    
+    # The distinguished name to use to bind to the LDAP directory
+    # Both the BindDN and Password may be omitted, in which
+    # case an anonymous bind is made.
+    BindDN      cn=Manager,dc=example,dc=com
+    # The password (may be in LDAP MD5/SHA1 form, generate using slappasswd)
+    Password    {SSHA}0JjiKIXNxsrjzSRnFDDuJEM1wQLIMvv/
+&lt;/LDAP&gt;
+
+&lt;Logging&gt;
+    # Logging configuration
+    &lt;syslog&gt;
+        Level info
+        Facility daemon
+        Address /var/run/log
+    &lt;/syslog&gt;
+    &lt;logfile&gt;
+        # Log debug messages to stdout
+        Level debug
+        Path STDOUT
+    &lt;/logfile&gt;
+&lt;/Logging&gt;
+
+&lt;Service UserSSH&gt;
+    # The helper module
+    Helper          splat.helpers.sshPublicKeys
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.
+    &lt;Option home&gt;
+        # Only write keys to home directories in /home
+        Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not write keys for users with a UID less than minuid
+        Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not write keys for users with a GID less than mingid
+        Value 1000
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (objectClass=sshAccount)
+
+    # Group-specific options.
+
+    # Require that entries match one of the specified groups
+    RequireGroup    yes
+
+    # Only the first matching group is used, and groups are evaluated in the
+    # order specified.
+    &lt;Group Administrators&gt;
+        # The base DN to use when searching for groups
+        # Defaults to the LDAP BaseDN
+        SearchBase       ou=Groups,dc=example,dc=com
+        # The filter to use when searching for groups
+        SearchFilter     (&amp;(objectClass=groupOfUniqueNames)(cn=administrators))
+    &lt;/Group&gt;
+
+    &lt;Group Developers&gt;
+        # The base DN to use when searching for groups
+        # Defaults to the LDAP BaseDN
+        SearchBase       ou=Groups,dc=example,dc=com
+        # The filter to use when searching for groups
+        SearchFilter     (&amp;(objectClass=groupOfUniqueNames)(cn=developers))
+
+        # Limit developers to using svn, rooted in /export/svn/repos
+        &lt;Option command&gt;
+            Value    /usr/local/bin/svnserve -t -r /export/svn/repos
+        &lt;/Option&gt;
+    &lt;/Group&gt;
+&lt;/Service&gt;
+
+&lt;Service MailForward&gt;
+    # The helper module
+    Helper          splat.helpers.mailForwardingAddress
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.
+    &lt;Option home&gt;
+        # Only write keys to home directories in /home
+        Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not write keys for users with a UID less than minuid
+        Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not write keys for users with a GID less than mingid
+        Value 1000
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (objectClass=posixAccount)
+&lt;/Service&gt;
+
+&lt;Service HomeDirectory&gt;
+    # The helper module
+    Helper          splat.helpers.homeDirectory
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m 
+        
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.
+    &lt;Option home&gt;
+        # Only create home directories in /home
+        Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not create directories for users with a UID less than minuid
+        Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not create directories for users with a GID less than mingid
+        Value 1000
+    &lt;/Option&gt;
+    &lt;Option skeldir&gt;
+        # Skeletal home directory
+        Value /usr/share/skel
+    &lt;/Option&gt;
+    &lt;Option postcreate&gt;
+        # Script to execute post-homedir creation. Will be given the user's
+        # numeric uid, gid, and home directory as arguments
+        Value /usr/local/libexec/splat-home-postcreate.sh
+    &lt;/Option&gt;
+    
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (objectClass=posixAccount)
+&lt;/Service&gt;                </programlisting>
       </sect2>
     </sect1>
 
@@ -126,14 +529,11 @@
 
         <para><filename>splatd</filename> detaches from the terminal and
         executes your service modules according to the intervals specified in
-        the configuration file. While the main distribution doesn't include any
-        startup scripts, one is installed by the FreeBSD port, Ubuntu package,
-        and DarwinPorts portfile for Splat. Writing one for other operating
-        systems should be relatively straight-forward. Feel free to submit your
-        scripts for inclusion. For daemon usage information, run
-        <filename>splatd</filename> with no arguments, or see the <link
-        linkend="splatd_man">splatd man page</link>.</para>
-
+        the configuration file. While the distribution doesn't include any
+        startup scripts, writing one for your operating system should be
+        relatively straight-forward. Feel free to submit your scripts for
+        inclusion. For daemon usage information, run
+        <filename>splatd</filename> with no arguments.</para>
       </sect2>
     </sect1>
   </chapter>
@@ -161,7 +561,7 @@
 
       <para>The Home Directory service module will query LDAP for users,
       create a home directory if it does not already exist, copy in template
-      home directory, and optionally run a user supplied post-create
+      home directory, and optionall run a user supplied post-create
       script.</para>
 
       <sect2>
@@ -175,8 +575,8 @@
         <title>Home Directory Service Options</title>
 
         <para>The Home Directory service module supports sanity checking on
-        the uid, gid, and home directory, home directory templates, and 
-        optional post-create script.</para>
+        the uid, gid, and home directory, home directory templates, and an
+        option post-create script.</para>
 
         <sect3>
           <title>Home Directory Service Options</title>
@@ -195,7 +595,7 @@
               <term>minuid</term>
 
               <listitem>
-                <para>Do not write keys for uids lower than minuid.</para>
+                <para>Do not write keys for uids lower than minuid..</para>
               </listitem>
             </varlistentry>
 
@@ -204,6 +604,14 @@
 
               <listitem>
                 <para>Do note write keys for gids lower than mingid.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>command</term>
+
+              <listitem>
+                <para>Limit user to the specified command.</para>
               </listitem>
             </varlistentry>
 
@@ -251,9 +659,7 @@
         <emphasis>sshAccount</emphasis> lists <emphasis>uid</emphasis>,
         <emphasis>uidNumber</emphasis>, <emphasis>gidNumber</emphasis>, and
         <emphasis>homeDirectory</emphasis> as mandatory attributes. Feel free
-        to use this schema with your own installation. 
-        
-        <programlisting>
+        to use this schema with your own installation. <programlisting>
 attributetype ( oooSSHAttributes:1 NAME 'sshPublicKey'
         DESC 'SSH Public Key'
         EQUALITY octetStringMatch
@@ -433,13 +839,11 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
       group-specific options.</para>
 
       <para>The <methodname>parseOptions</methodname> method is expected to
-      return an opaque context for a given set of options. Later invocations of
-      the <methodname>work</methodname> method will be passed a reference to
-      this opaque context, an LDAP <classname>Entry</classname> instance, and a
-      boolean value indicating whether the LDAP entry has been modified since
-      the last time the helper has run successfully. The
-      <methodname>attributes</methodname> method should just return a tuple of
-      the LDAP attributes needed by a plugin.</para>
+      return an opaque context for a given set of options. Later invocations
+      of the <methodname>work</methodname> method will be passed a reference
+      to this opaque context and an LDAP <classname>Entry</classname>
+      instance. The <methodname>attributes</methodname> method should just
+      return a tuple of the LDAP attributes needed by a plugin.</para>
     </sect1>
 
     <sect1>
@@ -455,18 +859,15 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
       <para>For a working example, refer to the SSH public key helper located
       in <filename>splat/helpers/sshPublicKeys.py</filename>.</para>
 
-      <example>
-        <title>Skeleton of Splat Helper Module</title>
-        <programlisting>
+      <programlisting>
 class MyHelper(splat.plugin.Helper):
     def attributes(self):
         ...
     def parseOptions(self, options):
         ...
-    def work(self, context, ldapEntry, modified):
+    def work(self, context, ldapEntry):
         ...
-        </programlisting>
-      </example>
+</programlisting>
 
       <sect2>
         <title>Error Handling and Logging</title>
@@ -494,8 +895,8 @@ class MyHelper(splat.plugin.Helper):
         the configuration parser -- it is your responsibility to validate
         these strings and convert them to the appropriate data type.</para>
 
-        <example>
-          <title>Helper Module parseOptions() Method</title>
+        <sect3>
+          <title>Example Implementation</title>
 
           <programlisting>
 def parseOptions(self, options):
@@ -508,8 +909,8 @@ def parseOptions(self, options):
         raise splat.plugin.SplatPluginError, "Invalid options '%s' specified." % key
 
     return context
-            </programlisting>
-          </example>
+                    </programlisting>
+        </sect3>
       </sect2>
 
       <sect2>
@@ -544,14 +945,9 @@ def parseOptions(self, options):
 
               <listitem>
                 <para>If true, the supplied LDAP entry has been modified since
-                the last <emphasis>successful</emphasis> helper iteration.  This
-                can be used to avoid doing unnecessary work in the helper, such
-                as overwriting identical ssh keys.
-                <computeroutput>modified</computeroutput> will also be set to
-                true if the <computeroutput>modifyTimestamp</computeroutput>
-                attribute was not found in an LDAP entry. This helps ensure
-                that helpers will still be able to function when this
-                attribute is not available for whatever reason.</para>
+                the last <emphasis>successful</emphasis> helper iteration.
+                This can be used to avoid doing unnecessary work in the
+                helper, such as overwriting identical ssh keys.</para>
               </listitem>
             </varlistentry>
           </variablelist></para>
@@ -579,14 +975,12 @@ def parseOptions(self, options):
           <para>The helper's <methodname>attributes()</methodname> method
           defines the LDAP object attributes that you are interested in -- an
           LDAP Entry will still be returned if it does not contain all of your
-          requested attributes, and/or the 
-          <computeroutput>modifyTimestamp</computeroutput> attribute. It is your
-          responsibility to ensure that any attributes required by your helper 
-          are supplied.</para>
+          requested attributes. It is your responsibility to ensure that any
+          required attributes are supplied.</para>
         </caution>
 
-        <example>
-          <title>Helper Module attributes() and work() Methods</title>
+        <sect3>
+          <title>Example Implementation</title>
 
           <programlisting>
 class MyHelper(splat.plugin.Helper):
@@ -601,409 +995,9 @@ class MyHelper(splat.plugin.Helper):
             return
 
         key = attributes.get('sshPublicKey')[0]
-          </programlisting>
-        </example>
+                    </programlisting>
+        </sect3>
       </sect2>
     </sect1>
   </chapter>
-
-  <reference>
-    <title>Splat Man Pages</title>
-    
-     <refentry id="splatd_man">
-      <refentryinfo>
-        <author>
-          <firstname>Nick</firstname>
-          <surname>Barkas</surname>
-          <affiliation>
-            <address><email>snb@threerings.net</email></address>
-          </affiliation>
-        </author>
-        <date>2006-05-14</date>
-      </refentryinfo>
-      <refmeta>
-        <refentrytitle>splatd</refentrytitle>
-        <manvolnum>8</manvolnum>
-      </refmeta>
-      <refnamediv>
-        <refname>splatd</refname>
-        <refpurpose>Scalable Periodic LDAP Attribute Transmogrifier</refpurpose>
-      </refnamediv>
-     <refsynopsisdiv>
-        <cmdsynopsis>
-          <command>splatd</command>
-          <arg><option>-h</option></arg>
-          <arg><option>-d</option></arg>
-          <arg><option>-f <replaceable>config</replaceable></option></arg>
-          <arg><option>-p <replaceable>pidfile</replaceable></option></arg>
-        </cmdsynopsis>
-      </refsynopsisdiv>
-      
-      <refsect1>
-        <title>Description</title>
-        <para>
-          Splat is a daemon designed to help keep information in an LDAP
-          directory in sync with information outside of an LDAP directory. This
-          information can be any set of attributes on any object in the LDAP
-          directory.
-        </para>
-      </refsect1>
-
-      <refsect1>
-        <title>Options</title>
-        <variablelist>
-          <varlistentry>
-            <term><option>-h</option></term>
-            <listitem>
-              <para>Show summary of options.</para>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term><option>-d</option></term>
-            <listitem>
-              <para>Debug mode. Will not fork and run in the background.</para>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term><option>-f</option></term>
-            <listitem>
-              <para>Splat configuration file.</para>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term><option>-p</option></term>
-            <listitem>
-              <para>File to write daemon pid to.</para>
-            </listitem>
-          </varlistentry>
-        </variablelist>
-      </refsect1>
-      <refsect1>
-        <title>See Also</title>
-        <para>
-          <citerefentry>
-            <refentrytitle>splat.conf</refentrytitle>
-            <manvolnum>5</manvolnum>
-          </citerefentry>
-        </para>
-        <para>
-          <ulink url="http://dpw.threerings.net/projects/splat"/>.
-        </para>
-      </refsect1>
-    </refentry>
-     <refentry id="splat.conf_man">
-      <refentryinfo>
-        <authorgroup>
-          <author>
-            <firstname>Nick</firstname>
-            <surname>Barkas</surname>
-            <affiliation>
-              <address><email>snb@threerings.net</email></address>
-            </affiliation>
-          </author>
-          <author>
-            <firstname>Landon</firstname>
-            <surname>Fuller</surname>
-            <affiliation>
-              <address><email>landonf@threerings.net</email></address>
-            </affiliation>
-          </author>
-        </authorgroup>
-        <date>2006-05-14</date>
-      </refentryinfo>
-      <refmeta>
-        <refentrytitle>splat.conf</refentrytitle>
-        <manvolnum>5</manvolnum>
-      </refmeta>
-      <refnamediv>
-        <refname>splat.conf</refname>
-        <refpurpose>
-          Scalable Periodic LDAP Attribute Transmogrifier configuration file
-        </refpurpose>
-      </refnamediv>
-      <refsect1>
-        <title>Introduction</title>
-
-        <para>The Splat configuration file is composed of three different
-        section types: <itemizedlist>
-            <listitem>
-              <para>LDAP Configuration</para>
-            </listitem>
-
-            <listitem>
-              <para>Service Helper Configuration</para>
-            </listitem>
-
-            <listitem>
-              <para>Logging Configuration</para>
-            </listitem>
-          </itemizedlist> The configuration uses an Apache-style syntax:
-        <programlisting>
-&lt;LDAP&gt;
-    # The LDAP Server configuration.
-    # URI of the server(s)
-    URI         ldaps://ldap1.example.com
-    # The default search base for the server
-    BaseDN      dc=example,dc=com
-&lt;/LDAP&gt;
-                    </programlisting></para>
-      </refsect1>
-      <refsect1>
-        <title>LDAP Configuration</title>
-
-        <para>The <computeroutput>LDAP</computeroutput> section defines
-        connection parameters for your LDAP server, and may appear once within
-        a Splat configuration file. If you make use of SSL/TLS, you will need to
-        ensure that the appropriate settings are enabled in your system
-        <filename>ldap.conf</filename> (e.g.
-        <computeroutput>TLS_CACERT</computeroutput> or
-        <computeroutput>TLS_CACERTDIR</computeroutput>, if necessary).</para>
-  
-        <refsect2>
-          <title>LDAP Configuration Options</title>
-
-          <variablelist>
-            <varlistentry>
-              <term>URI</term>
-
-              <listitem>
-                <para>URI of the LDAP server(s).</para>
-              </listitem>
-            </varlistentry>
-  
-            <varlistentry>
-              <term>BaseDN</term>
-
-              <listitem>
-                <para>Default Search Base DN.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>BindDN</term>
-
-              <listitem>
-                <para>LDAP Bind DN. If omitted, Slap will use an anonymous
-                bind.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>Password</term>
-
-              <listitem>
-                <para>LDAP Bind Password.</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-        </refsect2>
-      </refsect1>
-
-      <refsect1>
-        <title>Logging Configuration</title>
-
-        <para>The <computeroutput>Logging</computeroutput> section configures
-        logging for the Splat daemon. It is composed of any number of
-        <computeroutput>syslog</computeroutput> or
-        <computeroutput>logfile</computeroutput> subsections.</para>
-
-        <refsect2>
-          <title>Syslog Configuration Options</title>
-
-          <variablelist>
-            <varlistentry>
-              <term>Level</term>
-
-              <listitem>
-                <para>Log Verbosity. One of: debug, info, warning, error,
-                critical</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>Facility</term>
-
-              <listitem>
-                <para>Syslog Facility.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>Address</term>
-
-              <listitem>
-                <para>Address of syslog server, or pathname to syslog socket.
-                This varies between hosts. FreeBSD's syslog socket is located
-                at <filename>/var/run/log</filename>, while Linux systems often
-                use <filename>/dev/log</filename>.</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-        </refsect2>
-
-        <refsect2>
-          <title>Logfile Configuration Options</title>
-
-          <variablelist>
-            <varlistentry>
-              <term>Level</term>
-
-              <listitem>
-                <para>Log Verbosity. One of: debug, info, warning, error,
-                critical</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>Path</term>
-
-              <listitem>
-                <para>Path to log file, or reference to Python file object
-                such as STDOUT.</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-        </refsect2>
-      </refsect1>
-
-      <refsect1>
-        <title>Service Helper Configuration</title>
-
-        <para>The <computeroutput>Service</computeroutput> section configures
-        Splat's service helper modules. It is composed service-specific
-        settings, including any number of
-        <computeroutput>Option</computeroutput>, and
-        <computeroutput>Group</computeroutput> subsections. Group and Service
-        names (such as <emphasis>UserSSH</emphasis> or
-        <emphasis>Administrators</emphasis>) must be unique within their
-        scope, but are not interpreted by Splat in any other way.</para>
-
-        <para><computeroutput>Option</computeroutput> subsections may be
-        specified in both the Service section and the Group subsection.
-        Options are used to set and unset helper-specific settings. Module
-        options are documented in the module-specific documentation. Example:
-        <programlisting>
-&lt;Option mingid&gt;
-  # Do not write keys for users with a GID less than mingid
-  Value 1000
-&lt;/Option&gt; 
-  
-# Unset the Command option
-&lt;Option command/&gt;
-</programlisting></para>
-
-        <refsect2>
-          <title>Service Configuration Options</title>
-
-          <variablelist>
-            <varlistentry>
-              <term>Helper</term>
-
-              <listitem>
-                <para>Python Helper Module. Example:
-                splat.helpers.sshPublicKeys</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>Frequency</term>
-
-              <listitem>
-                <para>Frequency at which helper is invoked. Units may be
-                specified in hours (h), minutes (m), or seconds (s).</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>SearchBase</term>
-
-              <listitem>
-                <para>LDAP search base. If left unspecified, defaults to the
-                BaseDN specified in the LDAP configuration section.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>SearchFilter</term>
-
-              <listitem>
-                <para>LDAP search filter. All records that match this filter
-                (and, optionally, are members of a permitted group) will be
-                passed to the service helper module.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>RequireGroup (yes/no)</term>
-
-              <listitem>
-                <para>Require that returned entries match one of the specified
-                Groups.</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-        </refsect2>
-
-        <refsect2>
-          <title>Group Configuration Options</title>
-
-          <variablelist>
-            <varlistentry>
-              <term>SearchBase</term>
-
-              <listitem>
-                <para>LDAP search base. If left unspecified, defaults to the
-                BaseDN specified in the LDAP configuration section.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>SearchFilter</term>
-
-              <listitem>
-                <para>LDAP search filter. All records that match this filter
-                will determine this groups membership. The filter should
-                return groupOfUniqueNames or groupOfNames objects. I suggest
-                using RFC2307bis to combine posixGroup and
-                groupOfUniqueName.</para>
-              </listitem>
-            </varlistentry>
-
-            <varlistentry>
-              <term>MemberAttribute</term>
-
-              <listitem>
-                <para>LDAP attribute used to store member DNs. Defaults to
-                uniqueMember.</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-        </refsect2>
-      </refsect1>
-      <refsect1>
-        <title>Examples</title>
-
-        <para>An example configuration file <filename>splat.conf</filename> is
-        included with the Splat source.</para>
-
-      </refsect1>
-      <refsect1>
-        <title>See Also</title>
-        <para>
-          <citerefentry>
-            <refentrytitle>splatd</refentrytitle>
-            <manvolnum>8</manvolnum>
-          </citerefentry>
-          <citerefentry>
-            <refentrytitle>ldap.conf</refentrytitle>
-            <manvolnum>5</manvolnum>
-          </citerefentry>
-        </para>
-        <para>
-          <ulink url="http://dpw.threerings.net/projects/splat"/>.
-        </para>
-      </refsect1>
-    </refentry>
-  </reference>
 </book>
-
