@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # slapd.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
+# Scaleable Periodic LDAP Attribute Transmogrifier
 # Authors:
 #       Landon Fuller <landonf@threerings.net>
 #       Will Barton <wbb4@opendarwin.org>
@@ -67,9 +67,9 @@ class LDAPServer(object):
     def __init__(self):
         # Find the slapd binary
         for slapd in SLAPD_PATHS:
-            assert(slapd != None)
             if (os.path.isfile(slapd)):
                 break
+        assert(slapd != None)
 
         self._clean()
 

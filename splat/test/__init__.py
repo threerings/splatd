@@ -1,6 +1,6 @@
 # __init__.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
+# Scaleable Periodic LDAP Attribute Transmogrifier
 # Authors:
 #       Will Barton <wbb4@opendarwin.org>
 #       Landon Fuller <landonf@opendarwin.org>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # test_daemon.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
+# Scaleable Periodic LDAP Attribute Transmogrifier
 # Authors:
 #       Landon Fuller <landonf@threerings.net>
 #       Will Barton <wbb4@opendarwin.org>
@@ -36,7 +36,7 @@
 """ Splat Daemon Unit Tests """
 
 from twisted.trial import unittest
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 
 from splat import daemon 
 from splat import plugin
@@ -48,31 +48,18 @@ import slapd
 # Useful Constants
 from splat.test import DATA_DIR
 
-# Faked Exception
-class FakeException(Exception):
-    pass
-
 # Mock Helper
 class MockHelper(plugin.Helper):
     def __init__(self):
         super(plugin.Helper, self).__init__()
         self.done = False
         self.failure = None
-        self.exception = False
 
-    def attributes(self):
-        return ('uid',)
-
-    def work(self, context, ldapEntry, modified):
-        # Blow a gasket if an exception has been provided
-        if (self.exception == True):
-            self.failure = "Forced exception"
-            self.done = True
-            raise FakeException, "Forced exception"
-
+    def work(self, context, ldapEntry):
         uid = ldapEntry.attributes['uid'][0]
         if(uid != 'john'):
             self.failure = "Incorrect LDAP attribute returned (Wanted: 'john', Got: '%s')" % uid
+            self.done = True
         self.done = True
 
     def parseOptions(self, options):
@@ -83,6 +70,8 @@ class MockHelper(plugin.Helper):
 
     def convert(self):
         pass
+
+MockHelper.attributes = ('uid',)
 
 # Test Cases
 class ContextTestCase(unittest.TestCase):
@@ -118,40 +107,16 @@ class ContextTestCase(unittest.TestCase):
         self.ctx.start()
         self.ctx.removeHelper('test')
 
-    def _cbDaemonError(self, result):
-        self.ctx.stop()
-        self.assertNotEqual(result, self.ctx)
-
-    def _ebDaemonError(self, failure):
-        failure.trap(FakeException)
-
-    def test_daemonContextErrorHandling(self):
+    def test_run(self):
         self.ctx.addHelper(self.hc)
-        # Force a run error
-        self.hc.helper.exception = True
+        self.ctx.run()
 
-        d = self.ctx.start()
-        d.addCallback(self._cbDaemonError)
-        d.addErrback(self._ebDaemonError)
-
-        # Add a timeout
-        timeout = reactor.callLater(5, self.failed, "timeout")
-
-        # Wait for the work method to be called, or for a timeout to occur
-        while (not self.hc.helper.done or self.failure):
-            reactor.iterate(0.1)
-
-        timeout.cancel()
-
-        if (self.failure):
-            self.fail(self.failure)
-
-        return d
+        if (self.hc.helper.failure):
+            self.fail(self.hc.helper.failure)
 
     def test_start(self):
         self.ctx.addHelper(self.hc)
-        d = self.ctx.start()
-        d.addCallback(self._cbDaemonResult)
+        self.ctx.start()
 
         # Add a timeout
         timeout = reactor.callLater(5, self.failed, "timeout")
@@ -164,25 +129,9 @@ class ContextTestCase(unittest.TestCase):
 
         # Kill the task
         self.ctx.removeHelper('test')
-        self.ctx.stop()
 
         if (self.failure):
             self.fail(self.failure)
 
         if (self.hc.helper.failure):
             self.fail(self.hc.helper.failure)
-
-        return d
-
-    def _cbDaemonResult(self, result):
-        self.assertEquals(result, self.ctx)
-
-    def test_stop(self):
-        self.ctx.addHelper(self.hc)
-        d = self.ctx.start()
-
-        d.addCallback(self._cbDaemonResult)
-
-        self.ctx.stop()
-
-        return d
