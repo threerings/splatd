@@ -1,6 +1,6 @@
 # __init__.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
+# Scaleable Periodic LDAP Attribute Transmogrifier
 # Author: Will Barton <wbb4@opendarwin.org>
 #
 # Copyright (c) 2005 Three Rings Design, Inc.
@@ -35,7 +35,7 @@ import os
 __all__ = ['ldaputils', 'helpers', 'test']
 
 # General Info
-__version__ = '1.0beta5'
+__version__ = '0.5'
 __license__ = 'BSD License'
 __author__ = 'Three Rings Design, Inc.'
 __author_email__ = 'dpw@threerings.net'

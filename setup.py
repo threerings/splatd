@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # setup.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
+# Scaleable Periodic LDAP Attribute Transmogrifier
 # Authors:
 #        Will Barton <wbb4@opendarwin.org>
 #        Landon Fuller <landonf@threerings.net>
@@ -48,6 +48,7 @@ setup(
     author_email = EMAIL,
     license = LICENSE,
     scripts = [
+        'splat-manage',
         'splatd'
     ],
     packages = [

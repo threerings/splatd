@@ -98,17 +98,8 @@ tt {
 	font-family: "Courier New", Courier;	
 }
 
-.filename, .computeroutput {
+.filename {
 	color: #673;
-}
-
-.classname, .methodname, .varname {
-	color: #699;
-}
-
-.uri {
-	font-family: "Courier New", Courier;
-	font-weight: bold;
 }
 
 .database {

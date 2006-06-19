@@ -6,7 +6,7 @@
 #       Landon Fuller <landonf@threerings.net>
 #       Kevin Van Vechten <kevin@opendarwin.org>
 #
-# Copyright (c) 2005, 2006 Three Rings Design, Inc.
+# Copyright (c) 2005 Three Rings Design, Inc.
 # Portions copyright (c) 2005 Apple Computer, Inc.
 # All rights reserved.
 #
@@ -34,12 +34,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sys, logging, errno, string
-import os, stat, time
+import sys, os, logging
 
 import splat
 from splat import plugin
-import homeDirectory
 
 logger = logging.getLogger(splat.LOG_NAME)
 
@@ -47,86 +45,84 @@ logger = logging.getLogger(splat.LOG_NAME)
 HELPER_ERR_NONE = 0
 HELPER_ERR_MISC = 1
 HELPER_ERR_PRIVSEP = 2
-HELPER_ERR_WRITE = 3
+HELPER_ERR_MKDIR = 3
+HELPER_ERR_WRITE = 4
 
 class WriterContext(object):
     """ Option Context """
     def __init__(self):
-        self.makehome = False
-        self.homeDirContext = None
+        self.minuid = None
+        self.mingid = None
+        self.home = None
+        self.splitHome = None
 
-class Writer(homeDirectory.Writer):
-    # Required Attributes
-    def attributes(self): 
-        return ('mailForwardingAddress',) + homeDirectory.Writer.attributes(self)
-    
+class Writer(plugin.Helper):
     def parseOptions(self, options):
         context = WriterContext()
-        
-        # Make our own copy of options dictionary, so we don't clobber the
-        # caller's
-        myopt = options.copy()
 
-        # Get makehome option, if was given
-        for key in myopt.keys():
-            if (key == 'makehome'):
-                if (string.lower(myopt[key]) == 'true'):
-                    context.makehome = True
-                # Superclass parseOptions() method won't like this option
-                del myopt[key]
+        for key in options.keys():
+            if (key == 'home'):
+                context.home = os.path.abspath(options[key])
+                splitHome = context.home.split('/')
+                if (splitHome[0] != ''):
+                    raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
+                context.splitHome = splitHome
                 continue
+            if (key == 'minuid'):
+                context.minuid = int(options[key])
+                continue
+            if (key == 'mingid'):
+                context.mingid = int(options[key])
+                continue
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
 
-        # Then get other options using superclass parseOptions method
-        context.homeDirContext = homeDirectory.Writer.parseOptions(self, myopt)
         return context
-    
-    def work(self, context, ldapEntry, modified):
-        # Skip unmodified entries
-        if (not modified):
+
+    def work(self, context, ldapEntry):
+        attributes = ldapEntry.attributes
+
+        # Test for required attributes
+        if (not attributes.has_key('mailForwardingAddress') or not attributes.has_key('homeDirectory')):
+            return
+        if (not attributes.has_key('uidNumber') or not attributes.has_key('gidNumber')):
             return
 
-        # Get LDAP attributes, and make sure we have all the ones we need
-        attributes = ldapEntry.attributes
-        if (not attributes.has_key('mailForwardingAddress')):
-            raise plugin.SplatPluginError, "Required attribute mailForwardingAddress not specified."
+        home = attributes.get("homeDirectory")[0]
+        uid = int(attributes.get("uidNumber")[0])
+        gid = int(attributes.get("gidNumber")[0])
         addresses = attributes.get("mailForwardingAddress")
-        (home, uid, gid) = self.getAttributes(context.homeDirContext, ldapEntry)
 
-        # Make sure the home directory exists, and make it if config says to
-        if (not os.path.isdir(home)):
-            if (context.makehome == True):
-                homeDirectory.Writer.work(self, context.homeDirContext, ldapEntry, modified)
-            else:
-                # If we weren't told to make homedir, log a warning and quit
-                logger.warning(".forward file not being written because home directory %s does not exist. To have this home directory created automatically by this plugin, set the makehome option to true in your splat configuration file, or use the homeDirectory plugin." % home)
-                return
+        # Validate the home directory
+        if (context.home != None):
+            givenPath = os.path.abspath(home).split('/')
+            if (len(givenPath) < len(context.splitHome)):
+                raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, context.home, ldapEntry.dn)
+
+            for i in range(0, len(context.splitHome)):
+                if (context.splitHome[i] != givenPath[i]):
+                    raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, context.home, ldapEntry.dn)
+
+        # Validate the UID
+        if (context.minuid != None):
+            if (context.minuid > uid):
+                raise plugin.SplatPluginError, "LDAP Server returned uid %d less than specified minimum uid of %d for entry '%s'" % (uid, context.minuid, ldapEntry.dn)
+        # Validate the GID
+        if (context.mingid != None):
+            if (context.mingid > gid):
+                raise plugin.SplatPluginError, "LDAP Server returned gid %d less than specified minimum gid of %d for entry '%s'" % (gid, context.mingid, ldapEntry.dn)
+
 
         tmpfilename = "%s/.forward.tmp" % home
         filename = "%s/.forward" % home
-
-        # Make sure the modifyTimestamp entry exists before looking at it
-        if (ldapEntry.attributes.has_key('modifyTimestamp')):
-
-            # stat() the file, check if it is outdated
-            try:
-                fileTime = os.stat(filename)[stat.ST_MTIME]
-                # Convert LDAP UTC time to seconds since epoch
-                entryTime = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
-    
-                # If the entry is older than the file, skip it
-                # This will only occur on the very first daemon iteration,
-                # where modified is always 'True'
-                if (entryTime < fileTime):
-                    logger.info("Skipping %s, up-to-date" % filename)
-                    return
-    
-            except OSError:
-                # File doesn't exist, or some other error.
-                # Ignore the exception, it'll be caught again
-                # and reported below.
-                pass
-    
         logger.info("Writing mail address to %s" % filename)
+
+        # Make sure the home directory exists
+        if (not os.path.isdir(home)):
+            try:
+                os.makedirs(home)
+                os.chown(home, uid, gid)
+            except OSError, e:
+                raise plugin.SplatPluginError, "Failed to create home directory, %s" % e
 
         # Fork and setuid to write the files
         pipe = os.pipe()
@@ -147,6 +143,15 @@ class Writer(homeDirectory.Writer):
 
             # Adopt a strict umask
             os.umask(077)
+
+            try:
+                # Make sure the directory exists
+                dir = os.path.split(tmpfilename)[0]
+                if not os.path.exists(dir): os.makedirs(dir)
+            except OSError, e:
+                outf.write(str(e) + '\n')
+                outf.close()
+                os._exit(HELPER_ERR_MKDIR)
 
             try:
                 f = open(tmpfilename, "w+")
@@ -173,6 +178,7 @@ class Writer(homeDirectory.Writer):
                 try:
                     result = os.waitpid(pid, 0)
                 except OSError, e:
+                    import errno
                     if (e.errno == errno.EINTR):
                         continue
                     raise
@@ -193,5 +199,19 @@ class Writer(homeDirectory.Writer):
         if (status == HELPER_ERR_PRIVSEP):
             raise plugin.SplatPluginError, "Failed to drop privileges, %s" % errstr
 
+        if (status == HELPER_ERR_MKDIR):
+            raise plugin.SplatPluginError, "Failed to create home directory '%s', %s" % errstr
+
         if (status == HELPER_ERR_WRITE):
             raise plugin.SplatPluginError, "Failed to write .forward, %s" % errstr
+
+
+    # A list of modifyable attributes for this helper, 
+    # for interactive modifications (i.e. web interface)
+    def attributes(self, ldapEntry):
+        """ Return the modifyable attribues and their current values """
+        address = ldapEntry.attributes.get("mailForwardingAddress")
+        return {'mailForwardingAddress':address,}
+
+# Required Attributes
+Writer.attributes = ('mailForwardingAddress', 'homeDirectory', 'gidNumber', 'uidNumber')
