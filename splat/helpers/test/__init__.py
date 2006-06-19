@@ -5,7 +5,7 @@
 #       Will Barton <wbb4@opendarwin.org>
 #       Landon Fuller <landonf@opendarwin.org>
 #
-# Copyright (c) 2005, 2006 Three Rings Design, Inc.
+# Copyright (c) 2005 Three Rings Design, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 
 import os
 
-__all__ = ['test_sshPublicKeys', 'test_homeDirectory', 'test_mailForwardingAddress']
+__all__ = ['test_sshPublicKeys']
 
 # Useful Constants
 INSTALL_DIR = os.path.dirname(__file__)

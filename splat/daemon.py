@@ -128,7 +128,7 @@ class Context(object):
         for name,task in self.tasks:
             if (task.running):
                 # Task is still running ...
-                reactor.callLater(0, self._checkStop)
+                reactor.callLater(2, self._checkStop)
                 return
 
         # All tasks have been stopped
