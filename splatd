@@ -1,0 +1,344 @@
+#!/usr/bin/env python
+# splatd.py vi:ts=4:sw=4:expandtab:
+#
+# Authors:
+#       Will Barton <wbb4@opendarwin.org>
+#       Landon Fuller <landonf@threerings.net
+#
+# Copyright (c) 2005-2006 Three Rings Design, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright owner nor the names of contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+import os, sys
+
+# Close all file descriptors (except stdin/stdout/stderr) before doing anything else
+# Yes, this is really, really dumb. Python--.
+try:
+    maxfd = os.sysconf("SC_OPEN_MAX")
+except (AttributeError, ValueError):
+    maxfd = 1024       # default maximum
+
+    # Avoid closing stdout/stdin/stderr so we can still print a log
+    # initialization error message ...
+    stdin = sys.stdin.fileno()
+    stdout = sys.stdout.fileno()
+    stderr = sys.stderr.fileno()
+
+    for fd in range(0, maxfd):
+        try:
+            if (fd != stdout and fd != stderr and fd != stdin):
+                os.close(fd)
+        except OSError:
+            # Ignore EBADF
+            pass
+ 
+import getopt, ldap, time
+import signal, logging, random
+from twisted.internet import reactor, defer
+import ZConfig
+
+import splat
+from splat import ldaputils, daemon, plugin
+
+class FatalError(splat.SplatError):
+    """
+    Unrecoverable daemon error.
+    """
+    pass
+
+class Main(object):
+    """
+    Implements Splatd's Main Runloop
+    """
+    # Initial reconnection delay.
+    initialDelay = 10
+    # Maximum amount to delay reconnection (5 minutes)
+    maxDelay = 300
+    # Standard deviation to avoid stampeding clients
+    jitter = 10
+
+    def __init__(self):
+        # Backoff delay
+        self.delay = self.initialDelay
+        # Seconds since epoch of the last failure
+        self.lastFailure = 0
+
+    def usage(self):
+        print "%s: [-h] [-f config file] [-p pid file]" % sys.argv[0]
+        print "    -h             Print usage (this message)"
+        print "    -d             Debug mode. Will not fork."
+        print "    -f <config>    Use configuration file"
+        print "    -p <pidfile>   Write daemon pid to file"
+
+    def restartDaemon(self):
+        # Connect to LDAP and allocate our daemon context
+        d = self.start()
+
+        # We don't want the errback to fire immediately, as there's a potential
+        # for infinite recursion
+        reactor.callLater(0, d.addCallbacks, self._cbStart, self._ebStart)
+
+    def _cbStart(self, result):
+        """
+        Daemon context was stopped successfully
+        """
+        self.logger.info("Shutting down")
+        reactor.stop()
+
+    def _ebStart(self, failure):
+        """
+        Handle daemon context failures
+        """
+
+       # Re-raise the exception
+        try:
+            failure.raiseException()
+        except ldap.INVALID_CREDENTIALS, e:
+            self.logger.critical("Authentication failed for server: %s", self.config.LDAP.uri)
+
+        except ldap.NO_SUCH_OBJECT, e:
+            self.logger.critical("Authentication failed for server: %s, no such object. Is your Bind DN correct?", self.config.LDAP.uri)
+
+        except ldap.SERVER_DOWN, e:
+            self.logger.critical("Could not contact server: %s", self.config.LDAP.uri)
+
+        except FatalError, e:
+            self.logger.critical("An unrecoverable error occured: %s", e)
+            # Unrecoverable, stop the reactor
+            reactor.stop()
+            return
+
+        except Exception, e:
+            self.logger.critical("An unhandled error occured: %s", e)
+
+        # Default action: Restart the daemon context
+        #
+        # If current time - last failure > self.maxDelay, reset the current delay
+        # Otherwise, set the delay to MIN(ABS(normalvariate(self.delay * 2)), self.maxDelay)
+        currentTime = time.time()
+        if (currentTime - self.lastFailure > self.maxDelay):
+            self.delay = self.initialDelay
+        else:
+            self.delay = self.delay * 2
+        self.lastFailure = currentTime
+
+        self.delay = min(abs(random.normalvariate(self.delay, self.jitter)), self.maxDelay)
+
+        self.logger.info("Will attempt to reconnect in %d seconds" % int(self.delay))
+        reactor.callLater(self.delay, self.restartDaemon)
+
+    def main(self):
+        conf_file = None
+        pid_file = None
+        debug_flag = False
+    
+        try:
+            opts,args = getopt.getopt(sys.argv[1:], "hvdf:p:")
+        except getopt.GetoptError:
+            self.usage()
+            sys.exit(2)
+
+        for opt,arg in opts:
+            if opt == "-h":
+                self.usage()
+                sys.exit()
+            if opt == "-d":
+                debug_flag = True
+            if opt == "-f":
+                conf_file = arg
+            if opt == "-p":
+                pid_file = arg
+
+        if (conf_file == None):
+            self.usage()
+            sys.exit(1)
+
+        # Load our configuration schema
+        schema = ZConfig.loadSchema(splat.CONFIG_SCHEMA)
+        try:
+            self.config, handler = ZConfig.loadConfig(schema, conf_file)
+        except ZConfig.ConfigurationError, e:
+            print "Configuration Error: %s" % e
+            sys.exit(1)
+
+        # Set up logging
+        try:
+            self.config.Logging()
+        except Exception, e:
+            print "Log initialization failed: %s" % e
+            sys.exit(1)
+
+        # Daemonize
+        if (not debug_flag):
+            self.daemonize(self.config, pid_file)
+
+        # Acquire our logger
+        self.logger = logging.getLogger(splat.LOG_NAME)
+
+        # Connect to LDAP and allocate our daemon context
+        d = self.start()
+
+        # We don't want these to fire until the reactor is running
+        reactor.callWhenRunning(d.addCallbacks, self._cbStart, self._ebStart)
+
+        # Fire up the reactor
+        reactor.run()
+
+    def start(self):
+        """
+        Allocate a daemon context, populate it from our configuration,
+        and add it to the runloop
+        """
+        d = defer.Deferred()
+
+        # Connect to our LDAP server
+        self.logger.info("Connecting to %s" % self.config.LDAP.uri)
+        try:
+            conn = ldaputils.Connection(self.config.LDAP.uri)
+            conn.simple_bind(self.config.LDAP.binddn, self.config.LDAP.password)
+        except ldap.LDAPError, e:
+            d.errback(e)
+            return d
+
+        # Allocate and configure our daemon context
+        ctx = daemon.Context(conn)
+
+        # Load all service helpers
+        for service in self.config.Service:
+            options = {}
+
+            # Set up service options
+            for opt in service.Option:
+                options[opt.getSectionName()] = opt.value
+
+            try:
+                # Use the default basedn if necessary
+                if (service.searchbase == None):
+                    basedn = self.config.LDAP.basedn
+                else:
+                    basedn = service.searchbase
+                hc = plugin.HelperController(service.getSectionName(), service.helper, service.frequency, basedn,
+                        service.searchfilter, service.requiregroup, options)
+
+                # Find all per-service groups, if any
+                for group in service.Group:
+
+                    # Use the default basedn if necessary
+                    if (group.searchbase == None):
+                        basedn = self.config.LDAP.basedn
+                    else:
+                        basedn = group.searchbase
+
+                    # Instantiate our group filter
+                    if (group.memberattribute):
+                        groupFilter = ldaputils.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter, group.memberattribute)
+                    else:
+                        groupFilter = ldaputils.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter)
+
+                    # Load group-specific helper options
+                    groupOptions = {}
+                    groupOptions.update(options)
+
+                    for opt in group.Option:
+                        if (opt.value == None):
+                            # Remove deleted options
+                            groupOptions.pop(opt.getSectionName())
+                        else:
+                            # Add additional group options
+                            groupOptions[opt.getSectionName()] = opt.value
+
+                    # Add our newly minted group to the controller
+                    hc.addGroup(groupFilter, groupOptions)
+
+            except plugin.SplatPluginError, e:
+                # This is a fatal error
+                d.errback(FatalError("Error initializing service '%s': %s", service.getSectionName(), e))
+                return d
+
+            ctx.addHelper(hc)
+
+        # Add our daemon context to the runloop
+        ctxDefer = ctx.start()
+        ctxDefer.chainDeferred(d)
+        return d
+
+    def daemonize(self, config, pid_file):
+        """ Detach a process from the terminal and run it as a daemon """
+        # Redirect stdin, stdout, and stderr to /dev/null
+        null = os.open('/dev/null', os.O_RDWR)
+        os.dup2(null, sys.stdin.fileno())
+        os.dup2(null, sys.stdout.fileno())
+        os.dup2(null, sys.stderr.fileno())
+
+        if (null > 2):
+            os.close(null)
+
+        # Re-initialize our logger
+        self.logger = logging.getLogger(splat.LOG_NAME)
+        self.logger.info("splatd starting up...")
+
+        # Detach the daemon
+        try:
+            pid = os.fork()
+        except OSError, e:
+            self.logger.critical("An OSError occurred in daemonize(): %s", e)
+            sys.exit(1)
+
+        if pid == 0:
+            # become the session leader
+            os.setsid()
+
+            # ignore SIGHUP, since children are sent SIGHUP when the parent
+            # terminates
+            signal.signal(signal.SIGHUP, signal.SIG_IGN)
+
+            try:
+                # second child to prevent zombies
+                pid = os.fork()
+            except OSError, e:
+                self.logger.critical("An OSError occurred in daemonize(): %s", e)
+                sys.exit(1)
+
+            if pid == 0:
+                # Write out our pid file
+                if (pid_file):
+                    f = open(pid_file, 'w')
+                    f.write("%d\n" % os.getpid())
+                    f.close()
+
+                # Make sure we don't keep any directory in use
+                os.chdir("/")
+                os.umask(022)
+            else:
+                os._exit(0)
+        else:
+            os._exit(0)
+
+        return 0
+
+if __name__ == "__main__":
+    main = Main()
+    main.main()

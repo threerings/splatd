@@ -1,0 +1,22 @@
+#
+# OOO LDAP v3 OID Allocation
+#
+# Maintained by Landon Fuller <landonf@threeriings.net>
+#
+# OID Allocation from the Three Rings Design Private Enterprise Arc
+objectIdentifier iso 1.3.6.1.4.1
+objectIdentifier ooo iso:22054
+objectIdentifier oooPublished ooo:1
+objectIdentifier oooLdap oooPublished:1
+
+# Mail
+objectIdentifier oooMail oooLdap:1
+objectIdentifier oooMailAttributes oooMail:1
+objectIdentifier oooMailSyntaxes oooMail:2
+objectIdentifier oooMailClasses oooMail:3
+
+# SSH Keys
+objectIdentifier oooSSH oooLdap:2
+objectIdentifier oooSSHAttributes oooSSH:1
+objectIdentifier oooSSHSyntaxes oooSSH:2
+objectIdentifier oooSSHClasses oooSSH:3

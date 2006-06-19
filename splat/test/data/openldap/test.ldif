@@ -1,0 +1,101 @@
+# example.com
+dn: dc=example,dc=com
+dc: example
+o: Test LDAP Directory
+objectClass: dcObject
+objectClass: organization
+objectClass: top
+
+# People, example.com
+dn: ou=People,dc=example,dc=com
+ou: People
+objectClass: top
+objectClass: organizationalUnit
+
+# Groups, example.com
+dn: ou=Groups,dc=example,dc=com
+ou: Groups
+objectClass: top
+objectClass: organizationalUnit
+
+# john, Groups, example.com
+dn: cn=john,ou=Groups,dc=example,dc=com
+cn: john
+userPassword: secret
+objectClass: top
+objectClass: posixGroup
+objectClass: namedObject
+gidNumber: 10000
+
+# sally, Groups, example.com
+dn: cn=sally,ou=Groups,dc=example,dc=com
+cn: sally
+userPassword: secret
+objectClass: top
+objectClass: posixGroup
+objectClass: namedObject
+gidNumber: 10001
+
+# developers, Groups, example.com
+dn: cn=developers,ou=Groups,dc=example,dc=com
+cn: developers
+uniqueMember: uid=john,ou=People,dc=example,dc=com
+uniqueMember: uid=sally,ou=People,dc=example,dc=com
+objectClass: top
+objectClass: groupOfUniqueNames
+
+# administrators, Groups, example.com
+dn: cn=administrators,ou=Groups,dc=example,dc=com
+cn: administrators
+uniqueMember: uid=sally,ou=People,dc=example,dc=com
+objectClass: top
+objectClass: groupOfUniqueNames
+
+# notunique, Groups, example.com
+dn: cn=notunique,ou=Groups,dc=example,dc=com
+cn: notunique
+member: uid=john,ou=People,dc=example,dc=com
+objectClass: top
+objectClass: groupOfNames
+
+# john, People, example.com
+dn: uid=john,ou=People,dc=example,dc=com
+uid: john
+givenName: John
+sn: Doe 
+cn: John Doe
+mail: john@example.com
+mail: johnalias@example.com
+description: John the Example Person
+loginShell: /bin/tcsh
+uidNumber: 10001
+gidNumber: 10001
+homeDirectory: /home/john
+objectClass: top
+objectClass: person
+objectClass: qmailUser
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: sshAccount
+sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
+mailForwardingAddress: john@elsewhere.com
+
+# sally, People, example.com
+dn: uid=sally,ou=People,dc=example,dc=com
+uid: sally
+givenName: Sally
+sn: Doe
+cn: Sally Doe
+mail: sally@example.com
+mail: sallyalias@example.com
+description: Sally the Example Person
+loginShell: /bin/tcsh
+uidNumber: 10002
+homeDirectory: /home/sally
+gidNumber: 10002
+objectClass: top
+objectClass: person
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: sshAccount
+sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com

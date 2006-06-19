@@ -1,0 +1,18 @@
+#
+# ooomail LDAP v3 schema
+#
+# Maintained by Landon Fuller <landonf@threerings.net>
+#
+# This schema depends on:
+#	- ooo.schema
+#	- qmail.schema
+#
+# OID Allocation from the Three Rings Design Private Enterprise Arc
+# Attribute Type Definitions
+
+objectclass ( oooMailClasses:1 NAME 'mailAlias'
+	DESC 'Mail Alias List'
+	SUP top STRUCTURAL
+	MUST ( mail $ mailForwardingAddress )
+	MAY ( mailAlternateAddress $ mailHost $ mailForwardingAddress $
+	      accountStatus $ description ) )

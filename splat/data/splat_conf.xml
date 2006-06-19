@@ -1,0 +1,42 @@
+<!--
+    ZConfig Configuration Schema for LIDD
+    lidd_conf.xml vi:ts=4:sw=4:expandtab
+-->
+<schema>
+    <!-- LDAP Configuration -->
+    <sectiontype name="LDAP">
+        <key name="URI" required="yes"/>
+        <key name="BaseDN" required="yes"/>
+        <key name="BindDN" default="" required="no"/>
+        <key name="Password" default="" required="no"/>
+    </sectiontype>
+    <section type="LDAP" name="*" attribute="LDAP" required="yes"/>
+
+    <!-- Services Configuration -->
+    <sectiontype name="Option" required="no">
+        <key name="Value" required="no"/>
+    </sectiontype>
+
+    <sectiontype name="Group" required="no">
+        <key name="SearchBase" required="no"/>
+        <key name="SearchFilter" required="yes"/>
+        <key name="MemberAttribute" required="no"/>
+        <multisection type="Option" name="+" attribute="Option" required="no"/>
+    </sectiontype>
+
+    <sectiontype name="Service">
+        <key name="SearchBase" required="no"/>
+        <key name="SearchFilter" required="yes"/>
+        <key name="Helper" required="yes"/>
+        <key name="Frequency" datatype="time-interval" required="yes"/>
+        <key name="RequireGroup" datatype="boolean" required="no" default="false"/>
+        <multisection type="Option" name="+" attribute="Option" required="no"/>
+        <multisection type="Group" name="+" attribute="Group" required="no"/>
+    </sectiontype>
+    <multisection type="Service" name="+" attribute="Service" required="no"/>
+
+    <!-- Logging Configuration -->
+    <import package="ZConfig.components.logger"/>
+    <sectiontype name="Logging" extends="eventlog"/>
+    <section type="Logging" name="*" attribute="Logging" required="yes"/>
+</schema>
