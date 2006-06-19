@@ -38,7 +38,6 @@ from splat import SplatError
 import types
 import logging
 import ldap
-import time
 
 # Exceptions
 class SplatPluginError(SplatError):
@@ -62,8 +61,6 @@ class HelperController(object):
         self.searchFilter = searchFilter
         self.searchBase = searchBase
         self.requireGroup = requireGroup
-        # Time of last successful run
-        self._lastRun = 0
 
         self.groupsCtx = {}
         self.groups = []
@@ -81,7 +78,10 @@ class HelperController(object):
         if (self.helper == None):
             raise SplatPluginError, "Helper module %s not found" % module
 
-        self.searchAttr = self.helper.attributes() + ('modifyTimestamp',)
+        if (not hasattr(self.helper, "attributes")):
+            raise SplatPluginError, "Helper missing required 'attributes' attribute."
+
+        self.searchAttr = self.helper.attributes
 
         self.defaultContext = self.helper.parseOptions(helperOptions)
 
@@ -104,15 +104,13 @@ class HelperController(object):
         Find matching LDAP entries and fire off the helper
         """
         logger = logging.getLogger(splat.LOG_NAME)
-        failure = False
 
-        # TODO LDAP scope support
+        # XXX TODO LDAP scope support
         entries = ldapConnection.search(self.searchBase, ldap.SCOPE_SUBTREE, self.searchFilter, self.searchAttr)
 
         # Iterate over the results
         for entry in entries:
             context = None
-            modified = True
             # Find the group helper instance, if any
             for group in self.groups:
                 if (group.isMember(ldapConnection, entry.dn)):
@@ -127,45 +125,15 @@ class HelperController(object):
                 logger.debug("DN %s matched zero groups and requireGroup is enabled for helper %s" % (entry.dn, self.name))
                 continue
 
-            # Check if our entry has been modified
-            if (entry.attributes.has_key('modifyTimestamp')):
-                # Convert LDAP UTC time to seconds since epoch
-                try:
-                    entryMod = time.mktime(time.strptime(entry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
-                except ValueError:
-                    logger.error("Entry %s contains invalid modifyTimestamp attribute value '%s'" % (entry.dn, entry.attributes['modifyTimestamp'][0], self.name))
-                    continue
-
-                if (entryMod >= self._lastRun):
-                    modified = True
-                else:
-                    modified = False
-            
-            # If there is no modifyTimestamp, just say entry has been modified
-            else:
-                modified = True
-
             try:
-                self.helper.work(context, entry, modified)
+                self.helper.work(context, entry)
             except splat.SplatError, e:
-                failure = True
                 logger.error("Helper invocation for '%s' failed with error: %s" % (self.name, e))
-
-        # If the entire run was successful, update the timestamp
-        if (not failure):
-            self._lastRun = int(time.time())
 
 class Helper(object):
     """
     Abstract class for Splat helper plugins
     """
-    def attributes(self):
-        """
-        Return required LDAP attributes.
-        """
-        raise NotImplementedError, \
-                "This method is not implemented in this abstract class"
-        
     def parseOptions(self, options):
         """
         Parse the supplied options dict and return
@@ -174,7 +142,7 @@ class Helper(object):
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
 
-    def work(self, context, ldapEntry, modified):
+    def work(self, ldapEntry):
         """
         Do something useful with the supplied ldapEntry
         """
