@@ -2,8 +2,6 @@
   after a certain amount of time.
 - Plugins for cleaning up mediawiki and bugzilla databases when accounts are
   deleted.
-- Make ./setup.py install also install man pages and perhaps xhtml documentation
-  to a sensible place.
 
 These items are more like a wishlist than actual planned features:
 
