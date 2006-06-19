@@ -39,7 +39,7 @@
 import splat
 from splat import plugin
 
-from twisted.internet import reactor, task, defer
+from twisted.internet import reactor, task
 
 import ldap, logging
 
@@ -52,8 +52,6 @@ class Context(object):
         """
         self.svc = {}
         self.tasks = {}
-        self.stopping = False
-        self.failure = None
         self.ldapConnection = ldapConnection
 
     def addHelper(self, controller):
@@ -81,73 +79,21 @@ class Context(object):
         if (not self.svc.has_key(name)):
             return
 
-        # Are we shutting down?
-        if (self.stopping):
-            return
-
         ctrl = self.svc[name]
-        try:
-            ctrl.work(self.ldapConnection)
-        except Exception, e:
-            # Stop the presses
-            self._stopAllTasks()
-            # Propigate helper errors
-            self.failure = e
-            self._checkStop()
-            return
+        ctrl.work(self.ldapConnection)
 
     def start(self):
         """
         Add the daemon context to the twisted runloop
-        @return A deferred whose callback will be invoked with C{self}
-        when stop() is called, or whose errback will be invoked if the
-        daemon context raises an exception.
         """
-        self.deferResult = defer.Deferred()
-        self.stopping = False
-
         for name, ctrl in self.svc.items():
             t = task.LoopingCall(self._invokeHelper, name)
-            t.start(ctrl.interval, False)
+            t.start(ctrl.interval)
             self.tasks[name] = t
 
-        # Provide the caller our deferred result
-        return self.deferResult
-
-    def _stopAllTasks(self):
+    def run(self):
         """
-        Request that all running tasks stop
+        Run the associated helper tasks once
         """
-        # Loop through all running tasks
-        for key in self.tasks.keys():
-            task = self.tasks.pop(key)
-            task.stop()
-
-    def _checkStop(self):
-        # Check if all tasks have completed
-        for name,task in self.tasks:
-            if (task.running):
-                # Task is still running ...
-                reactor.callLater(0, self._checkStop)
-                return
-
-        # All tasks have been stopped
-        if (self.failure):
-            self.deferResult.errback(self.failure)
-        else:
-            self.deferResult.callback(self)
-
-    def stop(self):
-        """
-        Stop all running tasks.
-        """
-        # Stop requested. If any tasks are pending,
-        # inform them that we're closing up shop.
-        if (len(self.tasks) > 0):
-            self._stopAllTasks()
-            self.stopping = True
-            reactor.callLater(0, self._checkStop)
-        else:
-            # All tasks stopped.
-            # report success.
-            self.deferResult.callback(self)
+        for name, ctrl in self.svc.items():
+                self._invokeHelper(name)

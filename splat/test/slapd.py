@@ -67,9 +67,9 @@ class LDAPServer(object):
     def __init__(self):
         # Find the slapd binary
         for slapd in SLAPD_PATHS:
-            assert(slapd != None)
             if (os.path.isfile(slapd)):
                 break
+        assert(slapd != None)
 
         self._clean()
 

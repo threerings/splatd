@@ -24,7 +24,6 @@ cn: john
 userPassword: secret
 objectClass: top
 objectClass: posixGroup
-objectClass: namedObject
 gidNumber: 10000
 
 # sally, Groups, example.com
@@ -33,7 +32,6 @@ cn: sally
 userPassword: secret
 objectClass: top
 objectClass: posixGroup
-objectClass: namedObject
 gidNumber: 10001
 
 # developers, Groups, example.com
@@ -73,12 +71,9 @@ gidNumber: 10001
 homeDirectory: /home/john
 objectClass: top
 objectClass: person
-objectClass: qmailUser
 objectClass: posixAccount
 objectClass: inetOrgPerson
 objectClass: sshAccount
-sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
-mailForwardingAddress: john@elsewhere.com
 
 # sally, People, example.com
 dn: uid=sally,ou=People,dc=example,dc=com
@@ -98,4 +93,3 @@ objectClass: person
 objectClass: posixAccount
 objectClass: inetOrgPerson
 objectClass: sshAccount
-sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com

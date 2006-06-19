@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+	"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+	<head>
+		<title>splat: Scalable Periodic LDAP Attribute Transmogrifier</title>
+		<meta http-equiv="content-type" content="text/html;
+		charset=iso-8859-1"/>
+		<link rel="stylesheet" type="text/css" href="default.css"/>
+	</head>
+	<body>
+		<h1>Splat: Scalable Periodic LDAP Attribute Transmogrifier</h1>
+
+		<ul id="nav">
+			<li><a href="#intro">Introduction</a></li>
+			<li><a href="#get">Download</a></li>
+			<li><a href="#require">Requirements</a></li>
+			<li><a href="#support">Support</a></li>
+			<li><a href="#cav">Caveats</a></li>
+		</ul>
+
+		<h2><a id="intro">Introduction</a></h2>
+		<p>
+			Splat is a set of utilities designed to help keep information in
+			an LDAP directory in sync with information outside of an LDAP directory.
+			This information can be any set of attributes on any object in the LDAP directory.
+		</p>
+
+		<p>
+			Splat currently supports writing out the following information:
+		</p>
+
+		<ul>
+			<li>SSH Public Keys</li>
+			<li>User .forward Files</li>
+		</ul>
+
+		<p>
+			You may send patches, bug reports, and complaints to: landonf@threerings.net
+		</p>
+
+		<h2><a id="get">Download</a></h2>
+		<p>
+			The source for Splat 1.0-beta7 can be downloaded
+			<a href="splat-1.0-beta7.tar.gz">here</a>, and verified against this <a
+				href="splat-1.0-beta7.tar.gz.sig">PGP signature.</a>
+		</p>
+		<p>
+			My public key (key ID 4FF5E663) can be downloaded from
+			<a href="http://www.opendarwin.org/~landonf/landonf-gpg.pubkey">OpenDarwin</a>
+			and the
+			<a href="http://pgp.mit.edu:11371/pks/lookup?op=get&#38;search=0x4FF5E663">MIT PGP Keyserver</a>.
+				
+		</p>
+		<h2><a id="require">Requirements</a></h2>
+		<ul>
+			<li><a href="http://www.python.org">Python 2.4</a></li>
+			<li><a href="http://twistedmatrix.com">Twisted Networking Framework</a></li>
+			<li><a href="http://python-ldap.sourceforge.net/">Python LDAP</a></li>
+		</ul>
+		<p>
+			Splat uses the standard Python distutils.
+			To install, run setup.py:
+		</p>
+		<pre>./setup.py install</pre>
+
+		<p>
+			The splat framework will be installed in the Python site-packages directory.
+			The <em>splatd</em> daemon and the <em>splat-manage</em> command line tool
+			will be installed in the Python-specified bin directory. An example configuration
+			file, <em>splat.conf</em>, is supplied with the source distribution.
+		</p>
+
+		<h2><a id="support">Support</a></h2>
+		<p>
+			Please refer to the <a href="manual/">Splat Manual</a>.
+		</p>
+		
+		<h2><a id="caveats">Caveats</a></h2>
+		<ul>
+			<li>
+				Splat current stores the full search result in memory. This may cause
+				excessive memory consumption with extremely large result sets.
+			</li>
+			<li>
+				Blocking LDAP calls are used. A complex query or overloaded/unreachable LDAP server
+				may cause Splat to block for significant periods of time.
+			</li>
+			<li>
+				TLS/SSL is supported, but StartTLS is not.
+			</li>
+		</ul>
+		<p>These issues will be addressed in a future release. Patches are welcome.</p>
+	</body>
+</html>	
