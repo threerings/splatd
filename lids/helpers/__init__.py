@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# setup.py vi:ts=4:sw=4:expandtab:
+# __init__.py vi:ts=4:sw=4:expandtab:
 #
 # LDAP Information Distribution Suite
 # Author: Will Barton <wbb4@opendarwin.org>
@@ -31,26 +30,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from distutils.core import setup
-import lids 
+import os
+import re
 
-VERSION = lids.__version__
-AUTHOR = lids.__author__
-EMAIL = lids.__author_email__
-LICENSE = lids.__license__
+# Import each of the appropriate helper modules in the directory
+pyre = re.compile(".py$")
+initre = re.compile("^__init__")
 
-setup(
-    name = "lids",
-    version = VERSION,
-    author = AUTHOR,
-    author_email = EMAIL,
-    license = LICENSE,
-    scripts = [
-        'lid-manage',
-        'lidd'
-    ],
-    packages = [
-        'lids',
-        'lids.helpers'
-    ]
-)
+for f in os.listdir(__path__[0]):
+    if pyre.search(f) and not initre.search(f):
+        m = f.rsplit(".", 1)[0]
+        __import__(m, globals(), locals(), [])
+
+        

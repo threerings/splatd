@@ -1,0 +1,10 @@
+<div class="authform">
+	<p>Updating Information for %(username)s (%(givenName)s %(sn)s):</p>
+	<form action="%(script)s" method="POST">
+		<input type="hidden" name="update" value="1"/>
+		
+		%(fields)s
+
+		<p><input type="submit" name="Update"/></p>
+	</form>
+</div>

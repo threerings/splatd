@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-# setup.py vi:ts=4:sw=4:expandtab:
+# test_plugin.py vi:ts=4:sw=4:expandtab:
 #
-# LDAP Information Distribution Suite
-# Author: Will Barton <wbb4@opendarwin.org>
+# LDAP Information Distribution System
+# Authors:
+#       Landon Fuller <landonf@threerings.net>
+#       Will Barton <wbb4@opendarwin.org>
 #
 # Copyright (c) 2005 Three Rings Design, Inc.
 # All rights reserved.
@@ -31,26 +33,38 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from distutils.core import setup
-import lids 
+""" LDAP Unit Tests """
 
-VERSION = lids.__version__
-AUTHOR = lids.__author__
-EMAIL = lids.__author_email__
-LICENSE = lids.__license__
+from twisted.trial import unittest
 
-setup(
-    name = "lids",
-    version = VERSION,
-    author = AUTHOR,
-    author_email = EMAIL,
-    license = LICENSE,
-    scripts = [
-        'lid-manage',
-        'lidd'
-    ],
-    packages = [
-        'lids',
-        'lids.helpers'
-    ]
-)
+from lids import plugin
+
+# Useful Constants
+from lids.test import DATA_DIR
+
+# Mock Helper
+class MockHelper(plugin.Helper):
+    def setOptions(self, options):
+        assert(options['test'] == 'value')
+
+    def work(self, ldapEntry):
+        return True
+
+    def modify(self, ldapEntry, modifyList):
+        pass
+
+    def convert(self):
+        pass
+
+MockHelper.attributes = ('dn',)
+
+# Test Cases
+class HelperWithController(unittest.TestCase):
+    """ Test LIDS Helper """
+
+    def setUp(self):
+        options = {'test':'value'}
+        self.hc = plugin.HelperController('lids.test.test_plugin', 5, 'dc=example,dc=com', '(uid=john)', None, None, options)
+
+    def test_work(self):
+        self.assert_(self.hc.work(None))
