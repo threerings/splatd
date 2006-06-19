@@ -4,12 +4,10 @@
 #
 include		@LDAP_DIR@/schema/core.schema
 include		@LDAP_DIR@/schema/cosine.schema
+include		@LDAP_DIR@/schema/nis.schema
 include		@LDAP_DIR@/schema/inetorgperson.schema
-include		@LDAP_DIR@/schema/rfc2307bis.schema
-include		@LDAP_DIR@/schema/qmail.schema
 include		@LDAP_DIR@/schema/ooo.schema
 include		@LDAP_DIR@/schema/ooossh.schema
-include		@LDAP_DIR@/schema/ooomail.schema
 
 # Define global ACLs to disable default read access.
 
@@ -23,9 +21,6 @@ include		@LDAP_DIR@/schema/ooomail.schema
 #######################################################################
 # BDB database definitions
 #######################################################################
-
-modulepath  /usr/lib/ldap
-moduleload  back_bdb
 
 database	bdb
 suffix		"dc=example,dc=com"

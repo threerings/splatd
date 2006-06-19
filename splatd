@@ -32,31 +32,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os, sys
-
-# Close all file descriptors (except stdin/stdout/stderr) before doing anything else
-# Yes, this is really, really dumb. Python--.
-try:
-    maxfd = os.sysconf("SC_OPEN_MAX")
-except (AttributeError, ValueError):
-    maxfd = 1024       # default maximum
-
-    # Avoid closing stdout/stdin/stderr so we can still print a log
-    # initialization error message ...
-    stdin = sys.stdin.fileno()
-    stdout = sys.stdout.fileno()
-    stderr = sys.stderr.fileno()
-
-    for fd in range(0, maxfd):
-        try:
-            if (fd != stdout and fd != stderr and fd != stdin):
-                os.close(fd)
-        except OSError:
-            # Ignore EBADF
-            pass
- 
-import getopt, ldap, time
-import signal, logging, random
+import getopt, sys, ldap, time
+import os, signal, logging, random
 from twisted.internet import reactor, defer
 import ZConfig
 
@@ -176,6 +153,10 @@ class Main(object):
             self.usage()
             sys.exit(1)
 
+        # Close all file descriptors before doing anything else
+        if (not debug_flag):
+            self.close_fds()
+
         # Load our configuration schema
         schema = ZConfig.loadSchema(splat.CONFIG_SCHEMA)
         try:
@@ -193,7 +174,7 @@ class Main(object):
 
         # Daemonize
         if (not debug_flag):
-            self.daemonize(self.config, pid_file)
+            self.daemonize(config, pid_file)
 
         # Acquire our logger
         self.logger = logging.getLogger(splat.LOG_NAME)
@@ -285,6 +266,28 @@ class Main(object):
         ctxDefer.chainDeferred(d)
         return d
 
+    def close_fds(self):
+        """ Close all FDs other than stdin, stdout, and stderr """
+        # Close all open files.
+        try:
+            maxfd = os.sysconf("SC_OPEN_MAX")
+        except (AttributeError, ValueError):
+            maxfd = 1024       # default maximum
+
+        # Avoid closing stdout/stdin/stderr so we can still print a log
+        # initialization error message ...
+        stdin = sys.stdin.fileno()
+        stdout = sys.stdout.fileno()
+        stderr = sys.stderr.fileno()
+
+        for fd in range(0, maxfd):
+            try:
+                if (fd != stdout and fd != stderr and fd != stdin):
+                    os.close(fd)
+            except OSError:
+                # Ignore EBADF
+                pass
+
     def daemonize(self, config, pid_file):
         """ Detach a process from the terminal and run it as a daemon """
         # Redirect stdin, stdout, and stderr to /dev/null
@@ -296,8 +299,6 @@ class Main(object):
         if (null > 2):
             os.close(null)
 
-        # Re-initialize our logger
-        self.logger = logging.getLogger(splat.LOG_NAME)
         self.logger.info("splatd starting up...")
 
         # Detach the daemon

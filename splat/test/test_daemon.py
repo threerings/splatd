@@ -54,16 +54,14 @@ class FakeException(Exception):
 
 # Mock Helper
 class MockHelper(plugin.Helper):
+    attributes = ('uid',)
     def __init__(self):
         super(plugin.Helper, self).__init__()
         self.done = False
         self.failure = None
         self.exception = False
 
-    def attributes(self):
-        return ('uid',)
-
-    def work(self, context, ldapEntry, modified):
+    def work(self, context, ldapEntry):
         # Blow a gasket if an exception has been provided
         if (self.exception == True):
             self.failure = "Forced exception"
