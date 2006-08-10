@@ -51,11 +51,21 @@ class PurgeUserTestCase(unittest.TestCase):
     def setUp(self):
         self.slapd = slapd.LDAPServer()
         self.conn = ldaputils.Connection(slapd.SLAPD_URI)
-
+        
+        # Benign options
+        options = {
+            'archivehomedir':'true',
+            'purgehomedir':'true',
+            'purgehomearchive':'true',
+            'archivedest':'/home'
+        }
+        
+        self.hc = plugin.HelperController('test', 'splat.helpers.purgeUser', 5, 'dc=example,dc=com', '(uid=john)', False, options)
+        self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
         self.modified = True
 
     def tearDown(self):
         self.slapd.stop()
-        
+
