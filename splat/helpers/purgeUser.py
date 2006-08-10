@@ -1,11 +1,10 @@
-# __init__.py vi:ts=4:sw=4:expandtab:
+# purgeUser.py vi:ts=4:sw=4:expandtab:
 #
-# Scalable Periodic LDAP Attribute Transmogrifier
-# Authors:
-#       Will Barton <wbb4@opendarwin.org>
-#       Landon Fuller <landonf@opendarwin.org>
+# LDAP User Purging Helper.
+# Author:
+#       Nick Barkas <snb@threerings.net>
 #
-# Copyright (c) 2005, 2006 Three Rings Design, Inc.
+# Copyright (c) 2006 Three Rings Design, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -19,7 +18,7 @@
 # 3. Neither the name of the copyright owner nor the names of contributors
 #    may be used to endorse or promote products derived from this software
 #    without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,10 +31,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
+import os, logging
 
-__all__ = ['test_sshPublicKeys', 'test_homeDirectory', 'test_mailForwardingAddress', 'test_purgeUser']
+import splat
+from splat import plugin
 
-# Useful Constants
-INSTALL_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.join(INSTALL_DIR, 'data')
+logger = logging.getLogger(splat.LOG_NAME)
+
+class WriterContext(object):
+    """ Option Context """
+    def __init__(self):
+        self.archiveHome = None
+        self.purgeHome = None
+
+class Writer(plugin.Helper):
+    # Required Attributes
+    def attributes(self): 
+        return ('homeDirectory', 'gidNumber', 'uidNumber', 'accountStatus')
+
+    def parseOptions(self, options):
+        context = WriterContext()
+        
+        return context
+
+    def work(self, context, ldapEntry, modified):

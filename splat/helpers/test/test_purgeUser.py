@@ -1,11 +1,11 @@
-# __init__.py vi:ts=4:sw=4:expandtab:
+#!/usr/bin/env python
+# test_purgeUser.py vi:ts=4:sw=4:expandtab:
 #
 # Scalable Periodic LDAP Attribute Transmogrifier
 # Authors:
-#       Will Barton <wbb4@opendarwin.org>
-#       Landon Fuller <landonf@opendarwin.org>
+#       Nick Barkas <snb@threerings.net>
 #
-# Copyright (c) 2005, 2006 Three Rings Design, Inc.
+# Copyright (c) 2006 Three Rings Design, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,30 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
+""" LDAP Unit Tests """
 
-__all__ = ['test_sshPublicKeys', 'test_homeDirectory', 'test_mailForwardingAddress', 'test_purgeUser']
+from twisted.trial import unittest
+
+import ldap
+
+import splat
+from splat import ldaputils, plugin
+from splat.test import slapd
 
 # Useful Constants
-INSTALL_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.join(INSTALL_DIR, 'data')
+from splat.test import DATA_DIR
+
+class PurgeUserTestCase(unittest.TestCase):
+    """ Test Splat User Purging Helper """
+    
+    def setUp(self):
+        self.slapd = slapd.LDAPServer()
+        self.conn = ldaputils.Connection(slapd.SLAPD_URI)
+
+        # We test that checking the modification timestamp on entries works in
+        # plugin.py's test class, so just assume the entry is modified here.
+        self.modified = True
+
+    def tearDown(self):
+        self.slapd.stop()
+        
