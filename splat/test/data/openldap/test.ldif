@@ -25,7 +25,7 @@ userPassword: secret
 objectClass: top
 objectClass: posixGroup
 objectClass: namedObject
-gidNumber: 10000
+gidNumber: 10001
 
 # sally, Groups, example.com
 dn: cn=sally,ou=Groups,dc=example,dc=com
@@ -34,7 +34,25 @@ userPassword: secret
 objectClass: top
 objectClass: posixGroup
 objectClass: namedObject
-gidNumber: 10001
+gidNumber: 10002
+
+# chris, Groups, example.com
+dn: cn=chris,ou=Groups,dc=example,dc=com
+cn: chris
+userPassword: secret
+objectClass: top
+objectClass: posixGroup
+objectClass: namedObject
+gidNumber: 10003
+
+# pat, Groups, example.com
+dn: cn=pat,ou=Groups,dc=example,dc=com
+cn: pat
+userPassword: secret
+objectClass: top
+objectClass: posixGroup
+objectClass: namedObject
+gidNumber: 10004
 
 # developers, Groups, example.com
 dn: cn=developers,ou=Groups,dc=example,dc=com
@@ -79,6 +97,7 @@ objectClass: inetOrgPerson
 objectClass: sshAccount
 sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
 mailForwardingAddress: john@elsewhere.com
+accountStatus: active
 
 # sally, People, example.com
 dn: uid=sally,ou=People,dc=example,dc=com
@@ -98,4 +117,50 @@ objectClass: person
 objectClass: posixAccount
 objectClass: inetOrgPerson
 objectClass: sshAccount
+objectClass: qmailUser
 sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
+accountStatus: active
+
+# chris, People, example.com
+dn: uid=chris,ou=People,dc=example,dc=com
+uid: chris
+givenName: Chris
+sn: Doe
+cn: Chris Doe
+mail: chris@example.com
+description: Chris the recently disabled account
+loginShell: /bin/tcsh
+uidNumber: 10003
+homeDirectory: /home/chris
+gidNumber: 10003
+objectClass: top
+objectClass: person
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: sshAccount
+objectClass: purgeableAccount
+objectClass: qmailUser
+sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
+accountStatus: disabled
+#pendingPurge: YESTERDAY
+
+# pat, People, example.com
+dn: uid=pat,ou=People,dc=example,dc=com
+uid: pat
+givenName: Pat
+sn: Doe
+cn: Pat Doe
+mail: pat@example.com
+description: Pat the deleted account
+loginShell: /bin/tcsh
+uidNumber: 10004
+homeDirectory: /home/pat
+gidNumber: 10004
+objectClass: top
+objectClass: person
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: sshAccount
+objectClass: qmailUser
+sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
+accountStatus: deleted

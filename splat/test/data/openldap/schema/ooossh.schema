@@ -1,7 +1,7 @@
 #
 # ooossh LDAP v3 schema
 #
-# Maintained by Landon Fuller <landonf@threeriings.net>
+# Maintained by Landon Fuller <landonf@threerings.net>
 #
 # This schema depends on:
 #	- ooo.schema

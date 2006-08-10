@@ -20,3 +20,9 @@ objectIdentifier oooSSH oooLdap:2
 objectIdentifier oooSSHAttributes oooSSH:1
 objectIdentifier oooSSHSyntaxes oooSSH:2
 objectIdentifier oooSSHClasses oooSSH:3
+
+# Account Purging
+objectIdentifier oooPA oooLdap:3
+objectIdentifier oooPAAttributes oooPA:1
+objectIdentifier oooPASyntaxes oooPA:2
+objectIdentifier oooPAClasses oooPA:3
