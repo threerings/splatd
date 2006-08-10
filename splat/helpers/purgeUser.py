@@ -47,13 +47,15 @@ class WriterContext(object):
         self.archivedest = '/home'
 
 class Writer(plugin.Helper):
-    # Attributes we are interested in. Note that entries may not have all of these attributes, and we
-    # only need most of them if we are going to be purging or archiving. 
+    # Attributes we are interested in. Note that entries may not have all of 
+    # these attributes, and we only need most of them if we are going to be 
+    # purging or archiving. 
     def attributes(self): 
         return ('accountStatus', 'pendingPurge', 'homeDirectory', 'uidNumber', 'gidNumber')
 
-    # Helper method to case insensitively convert a string option 'true' or 'false' to the 
-    # appropriate boolean, and throw an exception if the option isn't either of those strings.
+    # Helper method to case insensitively convert a string option 'true' or 
+    # 'false' to the appropriate boolean, and throw an exception if the option 
+    # isn't either of those strings.
     def _parseBooleanOption(self, option):
         if (string.lower(option) == 'true'):
             return True
@@ -110,7 +112,8 @@ class Writer(plugin.Helper):
         if (not modified):
             return
         
-        # Get attributes from LDAP entry and make sure we have at least accountStatus
+        # Get attributes from LDAP entry and make sure we have at least 
+        # accountStatus.
         attributes = ldapEntry.attributes
         if (not attributes.has_key('accountStatus')):
             raise plugin.SplatPluginError, "Required attribute accountStatus not specified."
