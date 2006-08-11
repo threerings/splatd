@@ -142,7 +142,6 @@ objectClass: purgeableAccount
 objectClass: qmailUser
 sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA4l2Pm1xi3k1881D672GCuxuG5l6OSCgF1asP4aitl0tkdRa+rFlCR8q5mxvig1+GKFv696L/zBpL4i2Ig6K7PxdTVsjGLRGR9w87/gFi9EeM+jRh8u3DeWGSyJCAZte9DQQj3iQH33pBrCAMy/w08//tZlUKqXZl7JaKUUBofLE= john@example.com
 accountStatus: disabled
-#pendingPurge: YESTERDAY
 
 # pat, People, example.com
 dn: uid=pat,ou=People,dc=example,dc=com

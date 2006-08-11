@@ -34,12 +34,12 @@
 
 """ LDAP Unit Tests """
 
-from twisted.trial import unittest
-
 import ldap
-
 import splat
-from splat import ldaputils, plugin
+import time
+from twisted.trial import unittest
+from splat import ldaputils
+from splat import plugin
 from splat.test import slapd
 
 # Useful Constants
@@ -47,6 +47,16 @@ from splat.test import DATA_DIR
 
 class PurgeUserTestCase(unittest.TestCase):
     """ Test Splat User Purging Helper """
+    
+    def _setPendingPurge(self, dn):
+        # Timestamp for this time yesterday in GMT, formatted for LDAP. 
+        yesterday = time.strftime('%Y%m%d%H%M%SZ', time.gmtime(time.time() - 86400))
+        self.conn.simple_bind('cn=Manager,dc=example,dc=com', 'secret')
+        # Add a pendingPurge time in the past for the account specified by dn
+        mod = ldaputils.Modification(dn)
+        mod.add('pendingPurge', yesterday)
+        self.conn.modify(mod)
+        return yesterday
     
     def setUp(self):
         self.slapd = slapd.LDAPServer()
@@ -57,10 +67,10 @@ class PurgeUserTestCase(unittest.TestCase):
             'archivehomedir':'true',
             'purgehomedir':'true',
             'purgehomearchive':'true',
-            'archivedest':'/home'
+            'archivedest':'/'
         }
         
-        self.hc = plugin.HelperController('test', 'splat.helpers.purgeUser', 5, 'dc=example,dc=com', '(uid=john)', False, options)
+        self.hc = plugin.HelperController('test', 'splat.helpers.purgeUser', 5, 'dc=example,dc=com', '(uid=chris)', False, options)
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
@@ -69,3 +79,8 @@ class PurgeUserTestCase(unittest.TestCase):
     def tearDown(self):
         self.slapd.stop()
 
+    def test_pendingPurge(self):
+        # Make sure pendingPurge attribute gets set right for test user
+        yesterday = self._setPendingPurge('uid=chris,ou=People,dc=example,dc=com')
+        results = self.conn.search('dc=example,dc=com', ldap.SCOPE_SUBTREE, '(uid=chris)', None)
+        self.assertEqual(yesterday, results[0].attributes['pendingPurge'][0])

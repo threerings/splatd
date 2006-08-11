@@ -76,15 +76,16 @@ class Writer(plugin.Helper):
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
         
         # Validation of some options.
-        if (context.purgehomearchive and not context.archivehomedir):
+        if (context.purgeHomeArchive and not context.archiveHomeDir):
             raise plugin.SplatPluginError, "Cannot purge home directory archives if the archives are never created. Set archivehomedir to true."
-        if (context.archivehomedir):
-            if (not os.path.isdir(context.archivedest)):
-                raise plugin.SplatPluginError, "Archive destination directory %s does not exist or is not a directory" % context.archivedest
+        if (context.archiveHomeDir):
+            if (not os.path.isdir(context.archiveDest)):
+                raise plugin.SplatPluginError, "Archive destination directory %s does not exist or is not a directory" % context.archiveDest
 
         return context
             
-    def _archiveHomeDir(self, home, destination):        
+    def _archiveHomeDir(self, home, destination):
+        pass
         # Create new gzipped tar file in destination
         
         # Recursively add all files in homedir to tar file
@@ -92,11 +93,13 @@ class Writer(plugin.Helper):
         # Return absolute path to tarball
         
     def _purgeHomeDir(self, home, uid, gid):
+        pass
         # Fork and drop privileges
         
         # Recursively remove directory
         
     def _purgeHomeArchive(self, archive):
+        pass
 
     def work(self, context, ldapEntry, modified):
         # Do nothing for entries that have not been modified
