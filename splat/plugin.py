@@ -165,7 +165,21 @@ class Helper(object):
         """
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
-        
+    
+    
+    def _parseBooleanOption(self, option):
+        """
+        Case insensitively convert a string option 'true' or 'false' to 
+        the appropriate boolean, and throw an exception if the option 
+        isn't either of those strings.
+        """
+        if option.lower() == 'true':
+            return True
+        elif option.lower() == 'false':
+            return False
+        else:
+            raise plugin.SplatPluginError, "Invalid value for option %s specified; must be set to true or false." % option
+
     def parseOptions(self, options):
         """
         Parse the supplied options dict and return

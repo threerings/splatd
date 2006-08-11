@@ -31,8 +31,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os, logging, shutil
-
+import os
+import logging
+import shutil
+import posix
+import tarfile
 import splat
 from splat import plugin
 
@@ -41,43 +44,34 @@ logger = logging.getLogger(splat.LOG_NAME)
 class WriterContext(object):
     """ Option Context """
     def __init__(self):
-        self.archivehomedir = True
-        self.purgehomedir = True
-        self.purgehomearchive = True
-        self.archivedest = '/home'
+        self.archiveHomeDir = True
+        self.purgeHomeDir = True
+        self.purgeHomeArchive = True
+        self.archiveDest = '/home'
 
 class Writer(plugin.Helper):
-    # Attributes we are interested in. Note that entries may not have all of 
-    # these attributes, and we only need most of them if we are going to be 
-    # purging or archiving. 
     def attributes(self): 
+        """
+        Attributes we are interested in. Note that entries may not have 
+        all of these attributes, and we only need most of them if we 
+        are going to be purging or archiving.
+        """
         return ('accountStatus', 'pendingPurge', 'homeDirectory', 'uidNumber', 'gidNumber')
-
-    # Helper method to case insensitively convert a string option 'true' or 
-    # 'false' to the appropriate boolean, and throw an exception if the option 
-    # isn't either of those strings.
-    def _parseBooleanOption(self, option):
-        if (string.lower(option) == 'true'):
-            return True
-        elif (string.lower(option) == 'false'):
-            return False
-        else:
-            raise plugin.SplatPluginError, "Invalid value for option %s specified; must be set to true or false." % option
 
     def parseOptions(self, options):
         context = WriterContext()
         for key in options.keys():
             if (key == 'archivehomedir'):
-                context.archivehomedir = self._parseBooleanOption(str(options[key]))
+                context.archiveHomeDir = self._parseBooleanOption(str(options[key]))
                 continue
             if (key == 'purgehomedir'):
-                context.purgehomedir = self._parseBooleanOption(str(options[key]))
+                context.purgeHomeDir = self._parseBooleanOption(str(options[key]))
                 continue
             if (key == 'purgehomearchive'):
-                context.purgehomearchive = self._parseBooleanOption(str(options[key]))
+                context.purgeHomeArchive = self._parseBooleanOption(str(options[key]))
                 continue
             if (key == 'archivedest'):
-                context.archivedest = os.path.abspath(options[key])
+                context.archiveDest = os.path.abspath(options[key])
                 continue
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
         
@@ -90,10 +84,7 @@ class Writer(plugin.Helper):
 
         return context
             
-    def _archiveHomeDir(self, home, destination):
-        # Adopt a strict umask
-        os.umask(077)
-        
+    def _archiveHomeDir(self, home, destination):        
         # Create new gzipped tar file in destination
         
         # Recursively add all files in homedir to tar file
@@ -112,13 +103,4 @@ class Writer(plugin.Helper):
         if (not modified):
             return
         
-        # Get attributes from LDAP entry and make sure we have at least 
-        # accountStatus.
-        attributes = ldapEntry.attributes
-        if (not attributes.has_key('accountStatus')):
-            raise plugin.SplatPluginError, "Required attribute accountStatus not specified."
-        
-        # If the account is active, nothing to do
-        if (attributes.get('accountStatus') == 'active'):
-            return
             

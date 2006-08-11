@@ -70,8 +70,7 @@ class Writer(homeDirectory.Writer):
         # Get makehome option, if was given
         for key in myopt.keys():
             if (key == 'makehome'):
-                if (string.lower(myopt[key]) == 'true'):
-                    context.makehome = True
+                context.makehome = self._parseBooleanOption(str(options[key]))
                 # Superclass parseOptions() method won't like this option
                 del myopt[key]
                 continue

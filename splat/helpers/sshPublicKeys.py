@@ -74,8 +74,7 @@ class Writer(homeDirectory.Writer):
                 del myopt[key]
                 continue
             if (key == 'makehome'):
-                if (string.lower(myopt[key]) == 'true'):
-                    context.makehome = True
+                context.makehome = self._parseBooleanOption(str(options[key]))
                 del myopt[key]
                 continue
         
