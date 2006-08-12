@@ -178,7 +178,7 @@ class Helper(object):
         elif option.lower() == 'false':
             return False
         else:
-            raise plugin.SplatPluginError, "Invalid value for option %s specified; must be set to true or false." % option
+            raise SplatPluginError, "Invalid value for option %s specified; must be set to true or false." % option
 
     def parseOptions(self, options):
         """

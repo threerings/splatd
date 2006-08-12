@@ -84,3 +84,32 @@ class PurgeUserTestCase(unittest.TestCase):
         yesterday = self._setPendingPurge('uid=chris,ou=People,dc=example,dc=com')
         results = self.conn.search('dc=example,dc=com', ldap.SCOPE_SUBTREE, '(uid=chris)', None)
         self.assertEqual(yesterday, results[0].attributes['pendingPurge'][0])
+
+    def test_parseOptions(self):
+        """ Test parseOptions() """
+        options = {
+            'archivehomedir':'false',
+            'purgehomedir':'false',
+            'purgehomearchive':'false',
+            'archivedest':'/tmp'
+        }
+        context = self.hc.helper.parseOptions(options)
+        self.assertEqual(False, context.archiveHomeDir)
+        self.assertEqual(False, context.purgeHomeDir)
+        self.assertEqual(False, context.purgeHomeArchive)
+        self.assertEqual('/tmp', context.archiveDest)
+
+    def test_default_options(self):
+        """ Test Default Options """
+        context = self.hc.helper.parseOptions({})
+        self.assertEqual(True, context.archiveHomeDir)
+        self.assertEqual(True, context.purgeHomeDir)
+        self.assertEqual(True, context.purgeHomeArchive)
+        self.assertEqual('/home', context.archiveDest)
+        
+    def test_invalid_options(self):
+        """ Test Error Handling of Invalid Options """
+        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivedest':'/asdf'})
+        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'purgehomedir':'42'})
+        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivehomedir':'false', 'purgehomearchive':'true'})
+        
