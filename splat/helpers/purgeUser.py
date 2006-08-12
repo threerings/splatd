@@ -56,7 +56,7 @@ class Writer(plugin.Helper):
         all of these attributes, and we only need most of them if we 
         are going to be purging or archiving.
         """
-        return ('accountStatus', 'pendingPurge', 'homeDirectory', 'uidNumber', 'gidNumber')
+        return ('pendingPurge', 'homeDirectory', 'uidNumber', 'gidNumber')
 
     def parseOptions(self, options):
         context = WriterContext()
@@ -83,7 +83,7 @@ class Writer(plugin.Helper):
                 raise plugin.SplatPluginError, "Archive destination directory %s does not exist or is not a directory" % context.archiveDest
 
         return context
-            
+    
     def _archiveHomeDir(self, home, destination):
         pass
         # Create new gzipped tar file in destination
@@ -105,5 +105,3 @@ class Writer(plugin.Helper):
         # Do nothing for entries that have not been modified
         if (not modified):
             return
-        
-            
