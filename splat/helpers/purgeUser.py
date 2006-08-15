@@ -41,6 +41,12 @@ from splat import plugin
 
 logger = logging.getLogger(splat.LOG_NAME)
 
+# Child process exit codes
+PURGE_ERR_NONE = 0
+PURGE_ERR_PRIVSEP = 1
+PURGE_ERR_CHDIR = 2
+PURGE_ERR_DELTREE = 3
+
 class WriterContext(object):
     """ Option Context """
     def __init__(self):
@@ -95,12 +101,77 @@ class Writer(plugin.Helper):
         # Recursively add all files in homedir to tar file
         
         # Return absolute path to tarball
-        
+    
+    # Drops privileges to the owner of home directory, then recursive removes 
+    # all files in it. If this succeeds, the (probably empty) home directory
+    # will be removed by the privileged user splatd runs as.
     def _purgeHomeDir(self, home, uid, gid):
-        pass
-        # Fork and drop privileges
+        # File descriptors to use for error strings from child process
+        pipe = os.pipe()
+        infd = os.fdopen(pipe[0], 'r')
+        outfd = os.fdopen(pipe[1], 'w')
         
-        # Recursively remove directory
+        # Fork and drop privileges
+        pid = os.fork()
+        
+        if (pid == 0):
+            try:
+                os.setgid(gid)
+                os.setuid(uid)
+            except OSError, e:
+                outfd.write(str(e))
+                outfd.close()
+                os._exit(PURGE_ERR_PRIVSEP)
+        
+            # Recursively remove directory
+            try:
+                os.chdir(home)
+            except OSError, e:
+                outfd.write(str(e))
+                outfd.close()
+                os._exit(PURGE_ERR_CHDIR)
+            try:
+                for filename in os.listdir(home):
+                    shutil.deltree(filename)
+            except OSError, e:
+                outfd.write(str(e))
+                outfd.close()
+                os._exit(PURGE_ERR_DELTREE)
+            
+            sys._exit(PURGE_ERR_NONE)
+            
+        # Wait for child to exit
+        while True:
+            try:
+                result = os.waitpid(pid, 0)
+            except OSError, e:
+                if (e.errno == errno.EINTR):
+                    continue
+                raise
+            break
+
+        # Check exit status of child process
+        status = os.WEXITSTATUS(result[1])
+        if (status == PURGE_ERR_NONE):
+            outfd.close()
+            infd.close()
+            # If everything went ok, delete home directory
+            try:
+                os.rmdir(home)
+            except OSError, e:
+                raise plugin.SplatPluginError, "Unable to remove directory %s: %s" % (home, str(e))
+            logger.info("Home directory %s purged successfully." % home)
+            
+        # Deal with error conditions
+        else:
+            error = infd.readline()
+            infd.close()
+            if (status == PURGE_ERR_PRIVSEP):
+                raise plugin.SplatPluginError, "Unable to drop privileges to uid %d, gid %d and purge %s: %s" % (uid, gid, home, error)
+            elif (status == PURGE_ERR_CHDIR):
+                raise plugin.SplatPluginError, "Unable to change directory to %s: %s" % (home, error)
+            elif (status == PURGE_ERR_DELTREE):
+                raise plugin.SplatPluginError, "Unable to remove all files in %s: %s" % (home, error)
         
     def _purgeHomeArchive(self, archive):
         pass
