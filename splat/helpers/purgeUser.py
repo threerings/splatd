@@ -48,6 +48,7 @@ class WriterContext(object):
         self.purgeHomeDir = True
         self.purgeHomeArchive = True
         self.archiveDest = '/home'
+        self.purgeArchiveWait = 14
 
 class Writer(plugin.Helper):
     def attributes(self): 
@@ -72,6 +73,9 @@ class Writer(plugin.Helper):
                 continue
             if (key == 'archivedest'):
                 context.archiveDest = os.path.abspath(options[key])
+                continue
+            if (key == 'purgearchivewait'):
+                context.purgeArchiveWait = int(options[key])
                 continue
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
         
@@ -102,6 +106,9 @@ class Writer(plugin.Helper):
         pass
 
     def work(self, context, ldapEntry, modified):
-        # Do nothing for entries that have not been modified
-        if (not modified):
-            return
+        pass            
+        # if archiveHomeDir and not already archived, archive homedir
+        
+        # if purgeHomeDir, not already purged, and past pendingPurge, purge homedir
+        
+        # if purgeArchiveWait days past purge date and purgeHomeArchive, rm it

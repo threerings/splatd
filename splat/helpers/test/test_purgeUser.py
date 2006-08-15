@@ -91,13 +91,15 @@ class PurgeUserTestCase(unittest.TestCase):
             'archivehomedir':'false',
             'purgehomedir':'false',
             'purgehomearchive':'false',
-            'archivedest':'/tmp'
+            'archivedest':'/tmp',
+            'purgearchivewait':'5'
         }
         context = self.hc.helper.parseOptions(options)
         self.assertEqual(False, context.archiveHomeDir)
         self.assertEqual(False, context.purgeHomeDir)
         self.assertEqual(False, context.purgeHomeArchive)
         self.assertEqual('/tmp', context.archiveDest)
+        self.assertEqual(5, context.purgeArchiveWait)
 
     def test_default_options(self):
         """ Test Default Options """
@@ -106,10 +108,10 @@ class PurgeUserTestCase(unittest.TestCase):
         self.assertEqual(True, context.purgeHomeDir)
         self.assertEqual(True, context.purgeHomeArchive)
         self.assertEqual('/home', context.archiveDest)
+        self.assertEqual(14, context.purgeArchiveWait)
         
     def test_invalid_options(self):
         """ Test Error Handling of Invalid Options """
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivedest':'/asdf'})
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'purgehomedir':'42'})
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivehomedir':'false', 'purgehomearchive':'true'})
-        
