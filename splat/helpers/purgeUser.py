@@ -34,7 +34,6 @@
 import os
 import logging
 import shutil
-import posix
 import tarfile
 import splat
 from splat import plugin
@@ -44,8 +43,7 @@ logger = logging.getLogger(splat.LOG_NAME)
 # Child process exit codes
 PURGE_ERR_NONE = 0
 PURGE_ERR_PRIVSEP = 1
-PURGE_ERR_CHDIR = 2
-PURGE_ERR_DELTREE = 3
+PURGE_ERR_DELTREE = 2
 
 class WriterContext(object):
     """ Option Context """
@@ -94,14 +92,38 @@ class Writer(plugin.Helper):
 
         return context
     
-    def _archiveHomeDir(self, home, destination):
-        pass
-        # Create new gzipped tar file in destination
+    # Creates a tarred and gzipped archive of a home directory. 
+    def _archiveHomeDir(self, home, archiveFile):
+        # Create new gzipped tar file. Have to use os.open() to create it, 
+        # close, then use tarfile.open() because tarfile.open() does not let 
+        # you set file permissions.
+        try:
+            fd = os.open(archiveFile, os.O_CREAT, 0600)
+            os.close(fd)
+            archive = tarfile.open(archiveFile, 'w:gz')
+        except (IOError, OSError), e:
+            raise plugin.SplatPluginError, "Cannot create archive file %s: %s" % (archiveFile, str(e))
         
-        # Recursively add all files in homedir to tar file
+        # Strip any trailing / characters from home
+        home = os.path.normpath(home)
         
-        # Return absolute path to tarball
-    
+        cwd = os.getcwd();
+        homeParent = os.path.dirname(home)
+        os.chdir(homeParent)
+        
+        # Add all files in homedir to tar file
+        try:
+            try:
+                archive.add(os.path.basename(home))
+                # Keep close in the try block too, because it will throw an 
+                # exception if we run out of space.
+                archive.close()
+            except (IOError, OSError), e:
+                raise plugin.SplatPluginError, "Unable to add all files to archive %s: %s" % (archiveFile, e)
+        finally:
+            # Change back to directory we were in originally
+            os.chdir(cwd)
+            
     # Drops privileges to the owner of home directory, then recursive removes 
     # all files in it. If this succeeds, the (probably empty) home directory
     # will be removed by the privileged user splatd runs as.
@@ -123,16 +145,10 @@ class Writer(plugin.Helper):
                 outfd.close()
                 os._exit(PURGE_ERR_PRIVSEP)
         
-            # Recursively remove directory
-            try:
-                os.chdir(home)
-            except OSError, e:
-                outfd.write(str(e))
-                outfd.close()
-                os._exit(PURGE_ERR_CHDIR)
+            # Recursively remove home directory contents
             try:
                 for filename in os.listdir(home):
-                    shutil.deltree(filename)
+                    shutil.deltree(home + '/' + filename)
             except OSError, e:
                 outfd.write(str(e))
                 outfd.close()
@@ -168,13 +184,16 @@ class Writer(plugin.Helper):
             infd.close()
             if (status == PURGE_ERR_PRIVSEP):
                 raise plugin.SplatPluginError, "Unable to drop privileges to uid %d, gid %d and purge %s: %s" % (uid, gid, home, error)
-            elif (status == PURGE_ERR_CHDIR):
-                raise plugin.SplatPluginError, "Unable to change directory to %s: %s" % (home, error)
             elif (status == PURGE_ERR_DELTREE):
                 raise plugin.SplatPluginError, "Unable to remove all files in %s: %s" % (home, error)
         
+    # Unlink the specified file archive, which should be an archived homedir.
     def _purgeHomeArchive(self, archive):
-        pass
+        try:
+            os.remove(archive)
+        except OSError, e:
+            raise plugin.SplatPluginError, "Unable to remove archive %s: %s" % (archive, str(e))
+        logger.info("Archive %s removed successfully." % archive)
 
     def work(self, context, ldapEntry, modified):
         pass            
