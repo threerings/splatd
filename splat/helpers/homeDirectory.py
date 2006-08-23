@@ -39,51 +39,47 @@ import os, logging, re, shutil, errno
 import splat
 from splat import plugin
 
+import homeHelper
+
 logger = logging.getLogger(splat.LOG_NAME)
 
 class WriterContext(object):
     """ Option Context """
     def __init__(self):
-        self.minuid = None
-        self.mingid = None
-        self.home = None
-        self.splitHome = None
         self.skeldir = '/usr/share/skel' # Default skeletal home directory
         self.postcreate = None
 
-class Writer(plugin.Helper):
-    # Required Attributes
-    def attributes(self): 
-        return ('homeDirectory', 'gidNumber', 'uidNumber')
-
+class Writer(homeHelper.Writer):
     def parseOptions(self, options):
         context = WriterContext()
+        
+        # Make our own copy of options dictionary, so we don't clobber the
+        # caller's
+        myopt = options.copy()
 
         for key in options.keys():
-            if (key == 'home'):
-                context.home = str(options[key])
-                if (context.home[0] != '/'):
-                    raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
-                splitHome = context.home.split('/')
-                context.splitHome = splitHome
-                continue
-            if (key == 'minuid'):
-                context.minuid = int(options[key])
-                continue
-            if (key == 'mingid'):
-                context.mingid = int(options[key])
-                continue
             if (key == 'skeldir'):
-                context.skeldir = os.path.abspath(options[key])
+                context.skeldir = os.path.abspath(myopt[key])
                 # Validate skel directory
                 if (not os.path.isdir(context.skeldir)):
                     raise plugin.SplatPluginError, "Skeletal home directory %s does not exist or is not a directory" % context.skeldir
+                # Remove this option so the superclass doesn't complain
+                del myopt[key]
                 continue
             if (key == 'postcreate'):
-                context.postcreate = os.path.abspath(options[key])
+                context.postcreate = os.path.abspath(myopt[key])
+                del myopt[key]
                 continue
-            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
+                
+        # Get other options using superclass parseOptions method
+        superContext = homeHelper.Writer.parseOptions(self, myopt)
         
+        # XXX: is there a better way to copy these attributes from the super 
+        # class option context? Does it have to be done?
+        context.home = superContext.home
+        context.splitHome = superContext.splitHome
+        context.minuid = superContext.minuid
+        context.mingid = superContext.mingid
         return context
 
     # Recursively copy a directory tree, preserving permission modes and access
@@ -123,40 +119,6 @@ class Writer(plugin.Helper):
             except OSError, e:
                 raise plugin.SplatPluginError, "Failed to change ownership of %s to %d:%d" % (destPath, uid, gid)
                 continue
-            
-
-    def getAttributes(self, context, ldapEntry):
-        attributes = ldapEntry.attributes
-
-        # Test for required attributes
-        if (not (attributes.has_key('homeDirectory') and attributes.has_key('uidNumber') and attributes.has_key('gidNumber'))):
-            raise plugin.SplatPluginError, "Required attributes homeDirectory, uidNumber, and gidNumber not all specified."
-
-        home = attributes.get("homeDirectory")[0]
-        uid = int(attributes.get("uidNumber")[0])
-        gid = int(attributes.get("gidNumber")[0])
-    
-        # Validate the home directory
-        if (context.home != None):
-            givenPath = os.path.abspath(home).split('/')
-            if (len(givenPath) < len(context.splitHome)):
-                raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, context.home, ldapEntry.dn)
-
-            for i in range(0, len(context.splitHome)):
-                if (context.splitHome[i] != givenPath[i]):
-                    raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, context.home, ldapEntry.dn)
-
-        # Validate the UID
-        if (context.minuid != None):
-            if (context.minuid > uid):
-                raise plugin.SplatPluginError, "LDAP Server returned uid %d less than specified minimum uid of %d for entry '%s'" % (uid, context.minuid, ldapEntry.dn)
-                
-        # Validate the GID
-        if (context.mingid != None):
-            if (context.mingid > gid):
-                raise plugin.SplatPluginError, "LDAP Server returned gid %d less than specified minimum gid of %d for entry '%s'" % (gid, context.mingid, ldapEntry.dn)
-
-        return (home, uid, gid)
 
     def work(self, context, ldapEntry, modified):
         (home, uid, gid) = self.getAttributes(context, ldapEntry)
