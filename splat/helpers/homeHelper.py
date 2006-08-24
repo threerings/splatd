@@ -49,6 +49,15 @@ class Writer(plugin.Helper):
         return ('homeDirectory', 'gidNumber', 'uidNumber')
 
     def parseOptions(self, options):
+        """
+        Returns context object with attributes set to values of the 
+        home, uid, and gid keys (if they exist) in options dictionary. 
+        These three key value pairs will be deleted so subclasses may 
+        later parse other options from the dictionary and not have to 
+        worry about option key/value pairs that have already been 
+        handled by a call to this method. This method ignores any other
+        key value pairs in the dictionary.
+        """
         context = WriterContext()
 
         for key in options.keys():
@@ -58,15 +67,16 @@ class Writer(plugin.Helper):
                     raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
                 splitHome = context.home.split('/')
                 context.splitHome = splitHome
+                del options[key]
                 continue
             if (key == 'minuid'):
                 context.minuid = int(options[key])
+                del options[key]
                 continue
             if (key == 'mingid'):
                 context.mingid = int(options[key])
+                del options[key]
                 continue
-            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
-            
         return context
         
     def getAttributes(self, context, ldapEntry):

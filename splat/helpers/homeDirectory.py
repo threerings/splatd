@@ -43,43 +43,33 @@ import homeHelper
 
 logger = logging.getLogger(splat.LOG_NAME)
 
-class WriterContext(object):
-    """ Option Context """
+class WriterContext(homeHelper.WriterContext):
     def __init__(self):
+        homeHelper.WriterContext.__init__(self)
         self.skeldir = '/usr/share/skel' # Default skeletal home directory
         self.postcreate = None
 
 class Writer(homeHelper.Writer):
     def parseOptions(self, options):
         context = WriterContext()
+        # Get basic options using superclass parseOptions method, and copy them
+        # to this context object.
+        superContext = vars(homeHelper.Writer.parseOptions(self, options))
+        for opt in superContext.keys():
+            setattr(context, opt, superContext[opt])
         
-        # Make our own copy of options dictionary, so we don't clobber the
-        # caller's
-        myopt = options.copy()
-
         for key in options.keys():
             if (key == 'skeldir'):
-                context.skeldir = os.path.abspath(myopt[key])
+                context.skeldir = os.path.abspath(options[key])
                 # Validate skel directory
                 if (not os.path.isdir(context.skeldir)):
                     raise plugin.SplatPluginError, "Skeletal home directory %s does not exist or is not a directory" % context.skeldir
-                # Remove this option so the superclass doesn't complain
-                del myopt[key]
                 continue
             if (key == 'postcreate'):
-                context.postcreate = os.path.abspath(myopt[key])
-                del myopt[key]
+                context.postcreate = os.path.abspath(options[key])
                 continue
-                
-        # Get other options using superclass parseOptions method
-        superContext = homeHelper.Writer.parseOptions(self, myopt)
-        
-        # XXX: is there a better way to copy these attributes from the super 
-        # class option context? Does it have to be done?
-        context.home = superContext.home
-        context.splitHome = superContext.splitHome
-        context.minuid = superContext.minuid
-        context.mingid = superContext.mingid
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
+            
         return context
 
     # Recursively copy a directory tree, preserving permission modes and access

@@ -35,6 +35,7 @@ import os
 import logging
 import shutil
 import tarfile
+import homeHelper
 import splat
 from splat import plugin
 
@@ -45,26 +46,26 @@ PURGE_ERR_NONE = 0
 PURGE_ERR_PRIVSEP = 1
 PURGE_ERR_DELTREE = 2
 
-class WriterContext(object):
-    """ Option Context """
+class WriterContext(homeHelper.WriterContext):
     def __init__(self):
+        homeHelper.WriterContext.__init__(self)
         self.archiveHomeDir = True
-        self.purgeHomeDir = True
+        self.purgeHomeDir = True # XXX: should this even be an option?
         self.purgeHomeArchive = True
         self.archiveDest = '/home'
         self.purgeArchiveWait = 14
 
-class Writer(plugin.Helper):
+class Writer(homeHelper.Writer):
     def attributes(self): 
-        """
-        Attributes we are interested in. Note that entries may not have 
-        all of these attributes, and we only need most of them if we 
-        are going to be purging or archiving.
-        """
-        return ('pendingPurge', 'homeDirectory', 'uidNumber', 'gidNumber')
+        return ('pendingPurge',) + homeHelper.Writer.attributes(self)
 
     def parseOptions(self, options):
         context = WriterContext()
+        # Add options superclass is concerned with to context.
+        superContext = vars(homeHelper.Writer.parseOptions(self, options))
+        for opt in superContext.keys():
+            setattr(context, opt, superContext[opt])
+                
         for key in options.keys():
             if (key == 'archivehomedir'):
                 context.archiveHomeDir = self._parseBooleanOption(str(options[key]))
@@ -81,8 +82,7 @@ class Writer(plugin.Helper):
             if (key == 'purgearchivewait'):
                 context.purgeArchiveWait = int(options[key])
                 continue
-            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
-        
+                
         # Validation of some options.
         if (context.purgeHomeArchive and not context.archiveHomeDir):
             raise plugin.SplatPluginError, "Cannot purge home directory archives if the archives are never created. Set archivehomedir to true."
@@ -196,7 +196,12 @@ class Writer(plugin.Helper):
         logger.info("Archive %s removed successfully." % archive)
 
     def work(self, context, ldapEntry, modified):
-        pass            
+        # Get all needed LDAP attributes, and verify we have what we need
+        attributes = ldapEntry.attributes
+        if (not attributes.has_key('pendingPurge')):
+            raise plugin.SplatPluginError, "Required attribute pendingPurge not specified."
+        (home, uid, gid) = self.getAttributes(context, ldapEntry)
+        
         # if archiveHomeDir and not already archived, archive homedir
         
         # if purgeHomeDir, not already purged, and past pendingPurge, purge homedir
