@@ -1,9 +1,7 @@
-- Support user account deletion: archive mail and home directory, then delete
-  after a certain amount of time.
 - Plugins for cleaning up mediawiki and bugzilla databases when accounts are
   deleted.
-- Make ./setup.py install also install man pages and perhaps xhtml documentation
-  to a sensible place.
+- Make ./setup.py install also install man pages and perhaps xhtml 
+  documentation to a sensible place.
 
 These items are more like a wishlist than actual planned features:
 
@@ -11,6 +9,5 @@ These items are more like a wishlist than actual planned features:
   in sshPublicKeys plugin.
 - Allow customizing of the type of file created for mail forwarding in
   mailForwardingAddress plugin, e.g. .qmail instead of .forward.
-- In homeDirectory, mailForwardingAddress, and sshPublicKeys plugins, path
-  delimeters are hard-coded as /. We may want to change this to something more
-  portable someday.
+- Path delimeters are hard-coded as / in many plugins. We may want to change 
+  this to something more portable someday.

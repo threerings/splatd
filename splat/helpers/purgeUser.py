@@ -83,6 +83,7 @@ class Writer(homeHelper.Writer):
             if (key == 'purgearchivewait'):
                 context.purgeArchiveWait = int(options[key])
                 continue
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
                 
         # Validation of some options.
         if (context.purgeHomeArchive and not context.archiveHomeDir):

@@ -92,8 +92,13 @@ class PurgeUserTestCase(unittest.TestCase):
             'purgehomedir':'false',
             'purgehomearchive':'false',
             'archivedest':'/tmp',
-            'purgearchivewait':'5'
+            'purgearchivewait':'5',
+            'foo':'bar'
         }
+        # First test if the parser complains about invalid options.
+        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        # Then make sure it works when the options are valid.
+        del options['foo']
         context = self.hc.helper.parseOptions(options)
         self.assertEqual(False, context.archiveHomeDir)
         self.assertEqual(False, context.purgeHomeDir)
