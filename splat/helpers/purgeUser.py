@@ -35,6 +35,7 @@ import os
 import logging
 import shutil
 import tarfile
+import time
 import homeHelper
 import splat
 from splat import plugin
@@ -57,7 +58,7 @@ class WriterContext(homeHelper.WriterContext):
 
 class Writer(homeHelper.Writer):
     def attributes(self): 
-        return ('pendingPurge',) + homeHelper.Writer.attributes(self)
+        return ('pendingPurge', 'uid') + homeHelper.Writer.attributes(self)
 
     def parseOptions(self, options):
         context = WriterContext()
@@ -87,6 +88,8 @@ class Writer(homeHelper.Writer):
         if (context.purgeHomeArchive and not context.archiveHomeDir):
             raise plugin.SplatPluginError, "Cannot purge home directory archives if the archives are never created. Set archivehomedir to true."
         if (context.archiveHomeDir):
+            if (context.archiveDest[0] != '/'):
+                raise plugin.SplatPluginError, "Relative paths for the archivedest option are not permitted."
             if (not os.path.isdir(context.archiveDest)):
                 raise plugin.SplatPluginError, "Archive destination directory %s does not exist or is not a directory" % context.archiveDest
 
@@ -118,6 +121,7 @@ class Writer(homeHelper.Writer):
                 # Keep close in the try block too, because it will throw an 
                 # exception if we run out of space.
                 archive.close()
+                logger.info("Archive %s created." % archiveFile)
             except (IOError, OSError), e:
                 raise plugin.SplatPluginError, "Unable to add all files to archive %s: %s" % (archiveFile, e)
         finally:
@@ -127,7 +131,7 @@ class Writer(homeHelper.Writer):
     # Drops privileges to the owner of home directory, then recursive removes 
     # all files in it. If this succeeds, the (probably empty) home directory
     # will be removed by the privileged user splatd runs as.
-    def _purgeHomeDir(self, home, uid, gid):
+    def _purgeHomeDir(self, home, uidNumber, gidNumber):
         # File descriptors to use for error strings from child process
         pipe = os.pipe()
         infd = os.fdopen(pipe[0], 'r')
@@ -138,8 +142,8 @@ class Writer(homeHelper.Writer):
         
         if (pid == 0):
             try:
-                os.setgid(gid)
-                os.setuid(uid)
+                os.setgid(gidNumber)
+                os.setuid(uidNumber)
             except OSError, e:
                 outfd.write(str(e))
                 outfd.close()
@@ -183,7 +187,7 @@ class Writer(homeHelper.Writer):
             error = infd.readline()
             infd.close()
             if (status == PURGE_ERR_PRIVSEP):
-                raise plugin.SplatPluginError, "Unable to drop privileges to uid %d, gid %d and purge %s: %s" % (uid, gid, home, error)
+                raise plugin.SplatPluginError, "Unable to drop privileges to uid number %d, gid number %d and purge %s: %s" % (uidNumber, gidNumber, home, error)
             elif (status == PURGE_ERR_DELTREE):
                 raise plugin.SplatPluginError, "Unable to remove all files in %s: %s" % (home, error)
         
@@ -199,11 +203,31 @@ class Writer(homeHelper.Writer):
         # Get all needed LDAP attributes, and verify we have what we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('pendingPurge')):
-            raise plugin.SplatPluginError, "Required attribute pendingPurge not specified."
-        (home, uid, gid) = self.getAttributes(context, ldapEntry)
+            raise plugin.SplatPluginError, "Required attribute pendingPurge not found in LDAP entry."
+        if (not attributes.has_key('uid')):
+            raise plugin.SplatPluginError, "Required attribute uid not found in LDAP entry."
+        pendingPurge = attributes.get('pendingPurge')[0]
+        username = attributes.get('uid')[0]
+        (home, uidNumber, gidNumber) = self.getAttributes(context, ldapEntry)
         
-        # if archiveHomeDir and not already archived, archive homedir
+        # Get current time (in GMT). 
+        now = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time())))
         
-        # if purgeHomeDir, not already purged, and past pendingPurge, purge homedir
+        # Do nothing if pendingPurge is still in the future. 
+        if (now > pendingPurge.rstrip('Z')):
+            return
         
-        # if purgeArchiveWait days past purge date and purgeHomeArchive, rm it
+        # If archiveHomeDir and not already archived, archive homedir.
+        archiveFile = context.archiveDest.rstrip('/') + '/' + username + '.tar.gz'
+        if (archiveHomeDir and not os.path.isfile(archiveFile)):
+            self._archiveHomeDir(home, archiveFile)
+        
+        # If purgeHomeDir and not already purged, purge homedir.
+        if (purgeHomeDir and os.path.isdir(home)):
+            self._purgeHomeDir(home, uidNumber, gidNumber)
+        
+        # Purge archive if it is old enough, and we are supposed to purge them.
+        if purgeHomeArchive:
+            purgeArchiveAfter = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time() - (purgeArchiveWait * 86400))))
+            if (purgeArchiveAfter > pengingPurge.rstrip('Z')):
+                self._purgeHomeArchive(archiveFile)
