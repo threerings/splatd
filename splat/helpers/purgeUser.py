@@ -46,7 +46,7 @@ logger = logging.getLogger(splat.LOG_NAME)
 # Child process exit codes
 PURGE_ERR_NONE = 0
 PURGE_ERR_PRIVSEP = 1
-PURGE_ERR_RMTREE = 2
+PURGE_ERR_RM = 2
 
 class WriterContext(homeHelper.WriterContext):
     def __init__(self):
@@ -147,33 +147,38 @@ class Writer(homeHelper.Writer):
                 os.setgid(gidNumber)
                 os.setuid(uidNumber)
             except OSError, e:
-                outfd.write(str(e))
+                outfd.write(str(e) + '\n')
                 outfd.close()
                 os._exit(PURGE_ERR_PRIVSEP)
         
             # Recursively remove home directory contents
             try:
                 for filename in os.listdir(home):
-                    shutil.rmtree(home + '/' + filename)
+                    if (os.path.isdir(filename)):
+                        shutil.rmtree(home + '/' + filename)
+                    else:
+                        os.remove(home + '/' + filename)
             except OSError, e:
-                outfd.write(str(e))
+                outfd.write(str(e) + '\n')
                 outfd.close()
-                os._exit(PURGE_ERR_RMTREE)
-            
-            sys._exit(PURGE_ERR_NONE)
+                os._exit(PURGE_ERR_RM)
+
+            os._exit(PURGE_ERR_NONE)
             
         # Wait for child to exit
-        while True:
-            try:
-                result = os.waitpid(pid, 0)
-            except OSError, e:
-                if (e.errno == errno.EINTR):
-                    continue
-                raise
-            break
+        else:
+            while True:
+                try:
+                    result = os.waitpid(pid, 0)
+                except OSError, e:
+                    if (e.errno == errno.EINTR):
+                        continue
+                    raise
+                break
 
-        # Check exit status of child process
-        status = os.WEXITSTATUS(result[1])
+            # Check exit status of child process
+            status = os.WEXITSTATUS(result[1])
+            
         if (status == PURGE_ERR_NONE):
             outfd.close()
             infd.close()
@@ -190,7 +195,7 @@ class Writer(homeHelper.Writer):
             infd.close()
             if (status == PURGE_ERR_PRIVSEP):
                 raise plugin.SplatPluginError, "Unable to drop privileges to uid number %d, gid number %d and purge %s: %s" % (uidNumber, gidNumber, home, error)
-            elif (status == PURGE_ERR_RMTREE):
+            elif (status == PURGE_ERR_RM):
                 raise plugin.SplatPluginError, "Unable to remove all files in %s: %s" % (home, error)
         
     # Unlink the specified file archive, which should be an archived homedir.
@@ -231,5 +236,5 @@ class Writer(homeHelper.Writer):
         # Purge archive if it is old enough, and we are supposed to purge them.
         if context.purgeHomeArchive:
             purgeArchiveAfter = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time() - (context.purgeArchiveWait * 86400))))
-            if (purgeArchiveAfter > pengingPurge.rstrip('Z')):
+            if (purgeArchiveAfter > pendingPurge.rstrip('Z')):
                 self._purgeHomeArchive(archiveFile)
