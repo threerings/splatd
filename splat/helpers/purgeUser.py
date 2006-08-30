@@ -36,6 +36,7 @@ import logging
 import shutil
 import tarfile
 import time
+import errno
 import homeHelper
 import splat
 from splat import plugin
@@ -45,7 +46,7 @@ logger = logging.getLogger(splat.LOG_NAME)
 # Child process exit codes
 PURGE_ERR_NONE = 0
 PURGE_ERR_PRIVSEP = 1
-PURGE_ERR_DELTREE = 2
+PURGE_ERR_RMTREE = 2
 
 class WriterContext(homeHelper.WriterContext):
     def __init__(self):
@@ -153,11 +154,11 @@ class Writer(homeHelper.Writer):
             # Recursively remove home directory contents
             try:
                 for filename in os.listdir(home):
-                    shutil.deltree(home + '/' + filename)
+                    shutil.rmtree(home + '/' + filename)
             except OSError, e:
                 outfd.write(str(e))
                 outfd.close()
-                os._exit(PURGE_ERR_DELTREE)
+                os._exit(PURGE_ERR_RMTREE)
             
             sys._exit(PURGE_ERR_NONE)
             
@@ -189,7 +190,7 @@ class Writer(homeHelper.Writer):
             infd.close()
             if (status == PURGE_ERR_PRIVSEP):
                 raise plugin.SplatPluginError, "Unable to drop privileges to uid number %d, gid number %d and purge %s: %s" % (uidNumber, gidNumber, home, error)
-            elif (status == PURGE_ERR_DELTREE):
+            elif (status == PURGE_ERR_RMTREE):
                 raise plugin.SplatPluginError, "Unable to remove all files in %s: %s" % (home, error)
         
     # Unlink the specified file archive, which should be an archived homedir.
