@@ -220,15 +220,15 @@ class Writer(homeHelper.Writer):
         
         # If archiveHomeDir and not already archived, archive homedir.
         archiveFile = context.archiveDest.rstrip('/') + '/' + username + '.tar.gz'
-        if (archiveHomeDir and not os.path.isfile(archiveFile)):
+        if (context.archiveHomeDir and not os.path.isfile(archiveFile)):
             self._archiveHomeDir(home, archiveFile)
         
         # If purgeHomeDir and not already purged, purge homedir.
-        if (purgeHomeDir and os.path.isdir(home)):
+        if (context.purgeHomeDir and os.path.isdir(home)):
             self._purgeHomeDir(home, uidNumber, gidNumber)
         
         # Purge archive if it is old enough, and we are supposed to purge them.
-        if purgeHomeArchive:
-            purgeArchiveAfter = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time() - (purgeArchiveWait * 86400))))
+        if context.purgeHomeArchive:
+            purgeArchiveAfter = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time() - (context.purgeArchiveWait * 86400))))
             if (purgeArchiveAfter > pengingPurge.rstrip('Z')):
                 self._purgeHomeArchive(archiveFile)
