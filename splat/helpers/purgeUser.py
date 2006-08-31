@@ -235,6 +235,7 @@ class Writer(homeHelper.Writer):
         
         # Purge archive if it is old enough, and we are supposed to purge them.
         if (context.purgeHomeArchive and os.path.isfile(archiveFile)):
-            purgeArchiveAfter = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time() - (context.purgeArchiveWait * 86400))))
-            if (purgeArchiveAfter > int(pendingPurge.rstrip('Z'))):
+            # Number of seconds since archiveFile was last modified.
+            archiveModifiedAge = int(time.time()) - os.path.getmtime(archiveFile)
+            if ((archiveModifiedAge / 86400) > context.purgeArchiveWait):
                 self._purgeHomeArchive(archiveFile)
