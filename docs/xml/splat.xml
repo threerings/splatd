@@ -186,8 +186,8 @@
               <term>home</term>
 
               <listitem>
-                <para>Only write keys to subdirectories of the specified
-                directory.</para>
+                <para>Only create home directories that are subdirectories of 
+                the specified directory.</para>
               </listitem>
             </varlistentry>
 
@@ -195,7 +195,8 @@
               <term>minuid</term>
 
               <listitem>
-                <para>Do not write keys for uids lower than minuid.</para>
+                <para>Do not create home directories for uids lower than 
+                minuid.</para>
               </listitem>
             </varlistentry>
 
@@ -203,7 +204,8 @@
               <term>mingid</term>
 
               <listitem>
-                <para>Do note write keys for gids lower than mingid.</para>
+                <para>Do not create home directories for gids lower than 
+                mingid.</para>
               </listitem>
             </varlistentry>
 
@@ -232,39 +234,36 @@
     </sect1>
 
     <sect1>
-      <title>SSH Public Keys</title>
+      <title>OpenSSH Public Keys</title>
 
       <para>The SSH service module will extract SSH keys from LDAP, optionally
       create a home directory if it does not already exist, apply any key
       command limitations specified by the administrator, and atomically
-      overwrite the user's authorized_keys file.</para>
+      overwrite the user's <filename>authorized_keys</filename> file.</para>
 
       <sect2>
         <title>LDAP Schema</title>
 
         <para>To store the SSH keys in LDAP, we created an sshAccount schema
         in our Three Rings Enterprise OID space. The schema is included with
-        the Splat distribution as <filename>schema/ssh.schema</filename>. The
-        SSH schema defines a new auxiliary object class,
-        <emphasis>sshAccount</emphasis> and an optional attribute,
-        <emphasis>sshPublicKey</emphasis>. Additionally,
-        <emphasis>sshAccount</emphasis> lists <emphasis>uid</emphasis>,
-        <emphasis>uidNumber</emphasis>, <emphasis>gidNumber</emphasis>, and
-        <emphasis>homeDirectory</emphasis> as mandatory attributes. Feel free
-        to use this schema with your own installation. 
+        the Splat distribution as <filename>schema/ooossh.schema</filename>. 
+        It depends on another included schema: <filename>schema/ooo.schema
+        </filename>. The SSH schema defines a new auxiliary object class, 
+        <emphasis>sshAccount</emphasis> and an optional attribute, 
+        <emphasis>sshPublicKey</emphasis>. Feel free to use this schema with 
+        your own installation. 
         
         <programlisting>
 attributetype ( oooSSHAttributes:1 NAME 'sshPublicKey'
-        DESC 'SSH Public Key'
+        DESC 'OpenSSH Public Key'
         EQUALITY octetStringMatch
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
 
 objectclass ( oooSSHClasses:1 NAME 'sshAccount'
-        DESC 'SSH Account'
+        DESC 'OpenSSH Account'
         SUP top AUXILIARY
-        MUST ( uid $ uidNumber $ gidNumber $ homeDirectory )
         MAY ( sshPublicKey ) )
-                    </programlisting></para>
+        </programlisting></para>
       </sect2>
 
       <sect2>
@@ -283,7 +282,7 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
 
               <listitem>
                 <para>Create home directories for users. Set
-                to<computeroutput> true</computeroutput> to enable home
+                to <computeroutput>true</computeroutput> to enable home
                 directory creation, but be aware that other plugins (such as
                 the <computeroutput>homeDirectory</computeroutput> plugin) may
                 also be configured to create the same home directory, with
@@ -304,7 +303,7 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
               <term>minuid</term>
 
               <listitem>
-                <para>Do not write keys for uids lower than minuid..</para>
+                <para>Do not write keys for uids lower than minuid.</para>
               </listitem>
             </varlistentry>
 
@@ -312,7 +311,7 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
               <term>mingid</term>
 
               <listitem>
-                <para>Do note write keys for gids lower than mingid.</para>
+                <para>Do not write keys for gids lower than mingid.</para>
               </listitem>
             </varlistentry>
 
@@ -370,7 +369,7 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
 
               <listitem>
                 <para>Create home directories for users. Set
-                to<computeroutput> true</computeroutput> to enable home
+                to <computeroutput>true</computeroutput> to enable home
                 directory creation, but be aware that other plugins (such as
                 the <computeroutput>homeDirectory</computeroutput> plugin) may
                 also be configured to create the same home directory, with
@@ -400,12 +399,142 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
               <term>mingid</term>
 
               <listitem>
-                <para>Do note write forward files for gids lower than
+                <para>Do not write forward files for gids lower than
                 mingid.</para>
               </listitem>
             </varlistentry>
           </variablelist>
         </sect3>
+      </sect2>
+    </sect1>
+      
+    <sect1>
+      <title>Purge User Home Directories</title>
+        
+      <para>The Home Directory Purging service module can archive, delete, 
+      and later delete archives of the home directories of users set to be
+      purgeable in LDAP.</para>
+      
+      <sect2>
+        <title>LDAP Schema</title>
+        
+        <para>We created a purgeableAccount schema in the Three Rings 
+        Enterprise OID space to keep track of the date and time at which an
+        LDAP user's home directory should be archived and deleted. The 
+        needed schema can be found in <filename>schema/ooo.schema</filename> 
+        and <filename>schema/ooopa.schema</filename> in the Splat 
+        distribution. These define a new object class <emphasis>
+        purgeableAccount</emphasis> and a new optional attribute <emphasis>
+        pendingPurge</emphasis>. The Home Directory Purging module requires 
+        that accounts it is to purge or archive have <emphasis>pendingPurge
+        </emphasis> attributes, so you may want to install these schema on 
+        your LDAP server if you'd like to use it.
+        <programlisting>
+attributetype ( oooPAAttributes:1 NAME 'pendingPurge'
+        DESC 'Timestamp of pending deletion date'
+        EQUALITY generalizedTimeMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE )
+
+objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
+        DESC 'Purgeable Account'
+        SUP top AUXILIARY
+        MAY ( pendingPurge ) )
+        </programlisting></para>
+      </sect2>
+      
+      <sect2>
+        <title>Home Directory Purging Service Options</title>
+        
+        The Home Directory Purging module supports the following options. The 
+        <computeroutput>home</computeroutput>, <computeroutput>minuid
+        </computeroutput>, and <computeroutput>mingid</computeroutput> options 
+        are not required to be set, but are useful for sanity checking.
+        
+        <variablelist>
+          <varlistentry>
+            <term>home</term>
+
+            <listitem>
+              <para>Only home directories that are subdirectories of the 
+              specified directory may be purged and/or archived.</para>
+            </listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term>minuid</term>
+
+            <listitem>
+              <para>Do not purge/archive home directories for uids lower than 
+              minuid.</para>
+            </listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term>mingid</term>
+
+            <listitem>
+              <para>Do not purge/archive home directories for gids lower than 
+              mingid.</para>
+            </listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term>archivehomedir</term>
+            
+            <listitem>
+              <para>Set to <computeroutput>true</computeroutput> to archive 
+              a user's home directory before purging it. Defaults to true.
+              </para>
+            </listitem>
+          </varlistentry>
+          
+          <varlistentry>
+            <term>purgehomedir</term>
+            
+            <listitem>
+              <para>Set to <computeroutput>true</computeroutput> to purge 
+              a user's home directory after the <computeroutput>pendingPurge
+              </computeroutput> time in the user's LDAP entry. Defaults to 
+              true. N.B. if this option and 
+              <computeroutput>archivehomedir</computeroutput> are both set 
+              to <computeroutput>false</computeroutput>, the plugin will do 
+              nothing.
+              </para>
+            </listitem>
+          </varlistentry>
+          
+          <varlistentry>
+            <term>purgehomearchive</term>
+            
+            <listitem>
+              <para>Set to <computeroutput>true</computeroutput> to delete  
+              the archive created of a user's home directory. This action will 
+              take place <computeroutput>purgearchivewait</computeroutput> 
+              days after the archive was last modified (which will generally 
+              be when the archive was created). Defaults to true.
+              </para>
+            </listitem>
+          </varlistentry>
+          
+          <varlistentry>
+            <term>archivedest</term>
+            
+            <listitem>
+              <para>Directory that homedir archives will be created and left 
+                in. Defaults to <filename>/home</filename>.
+              </para>
+            </listitem>
+          </varlistentry>
+          
+          <varlistentry>
+            <term>purgearchivewait</term>
+            
+            <listitem>
+              <para>Number of days since its last modified time to wait before
+              deleting a homedir archive. Defaults to 14.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
       </sect2>
     </sect1>
   </chapter>
