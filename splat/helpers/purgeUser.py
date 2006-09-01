@@ -52,7 +52,7 @@ class WriterContext(homeHelper.WriterContext):
     def __init__(self):
         homeHelper.WriterContext.__init__(self)
         self.archiveHomeDir = True
-        self.purgeHomeDir = True # XXX: should this even be an option?
+        self.purgeHomeDir = True
         self.purgeHomeArchive = True
         self.archiveDest = '/home'
         self.purgeArchiveWait = 14
