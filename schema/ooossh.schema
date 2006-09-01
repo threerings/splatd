@@ -1,0 +1,24 @@
+#
+# ooossh LDAP v3 schema
+#
+# Maintained by Landon Fuller <landonf@threeriings.net>
+#
+# This schema depends on:
+#	- ooo.schema
+#	- core.schema
+#	- nis.schema
+#
+# OID Allocation from the Three Rings Design Private Enterprise Arc
+
+# Attribute Type Definitions
+
+# Octet String
+attributetype ( oooSSHAttributes:1 NAME 'sshPublicKey'
+	DESC 'OpenSSH Public Key'
+	EQUALITY octetStringMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+objectclass ( oooSSHClasses:1 NAME 'sshAccount'
+	DESC 'OpenSSH Account'
+	SUP top AUXILIARY
+	MAY ( sshPublicKey ) )
