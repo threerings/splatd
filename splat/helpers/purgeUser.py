@@ -112,23 +112,15 @@ class Writer(homeHelper.Writer):
         # Strip any trailing / characters from home
         home = os.path.normpath(home)
         
-        cwd = os.getcwd();
-        homeParent = os.path.dirname(home)
-        os.chdir(homeParent)
-        
         # Add all files in homedir to tar file
         try:
-            try:
-                archive.add(os.path.basename(home))
-                # Keep close in the try block too, because it will throw an 
-                # exception if we run out of space.
-                archive.close()
-                logger.info("Archive %s created." % archiveFile)
-            except (IOError, OSError), e:
-                raise plugin.SplatPluginError, "Unable to add all files to archive %s: %s" % (archiveFile, e)
-        finally:
-            # Change back to directory we were in originally
-            os.chdir(cwd)
+            archive.add(home, arcname=os.path.basename(home))
+            # Keep close in the try block too, because it will throw an 
+            # exception if we run out of space.
+            archive.close()
+            logger.info("Archive %s created." % archiveFile)
+        except (IOError, OSError), e:
+            raise plugin.SplatPluginError, "Unable to add all files to archive %s: %s" % (archiveFile, e)
             
     # Drops privileges to the owner of home directory, then recursive removes 
     # all files in it. If this succeeds, the (probably empty) home directory
