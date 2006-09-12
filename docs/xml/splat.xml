@@ -425,10 +425,9 @@ objectclass ( oooSSHClasses:1 NAME 'sshAccount'
         and <filename>schema/ooopa.schema</filename> in the Splat 
         distribution. These define a new object class <emphasis>
         purgeableAccount</emphasis> and a new optional attribute <emphasis>
-        pendingPurge</emphasis>. The Home Directory Purging module requires 
-        that accounts it is to purge or archive have <emphasis>pendingPurge
-        </emphasis> attributes, so you may want to install these schema on 
-        your LDAP server if you'd like to use it.
+	pendingPurge</emphasis>. The Home Directory Purging module utilizes
+	the <emphasis>pendingPurge</emphasis> attribute to determine account
+	purgability.
         <programlisting>
 attributetype ( oooPAAttributes:1 NAME 'pendingPurge'
         DESC 'Timestamp of pending deletion date'
