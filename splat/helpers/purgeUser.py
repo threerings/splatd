@@ -147,9 +147,9 @@ class Writer(homeHelper.Writer):
             try:
                 for filename in os.listdir(home):
                     if (os.path.isdir(filename)):
-                        shutil.rmtree(home + '/' + filename)
+                        shutil.rmtree(os.path.join(home, filename))
                     else:
-                        os.remove(home + '/' + filename)
+                        os.remove(os.path.join(home, filename))
             except OSError, e:
                 outfd.write(str(e) + '\n')
                 outfd.close()
@@ -217,7 +217,7 @@ class Writer(homeHelper.Writer):
             return
         
         # If archiveHomeDir and not already archived or purged, archive homedir.
-        archiveFile = context.archiveDest.rstrip('/') + '/' + username + '.tar.gz'
+        archiveFile = os.path.join(context.archiveDest, os.path.basename(home), '.tar.gz')
         if (context.archiveHomeDir and (not os.path.isfile(archiveFile)) and os.path.isdir(home)):
             self._archiveHomeDir(home, archiveFile)
         
