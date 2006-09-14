@@ -40,10 +40,10 @@ from twisted.internet import reactor, defer
 
 from splat import daemon 
 from splat import plugin
-from splat import ldaputils
+from splat.ldaputils import client as ldapclient
 
 import test_plugin
-import slapd
+from splat.ldaputils.test import slapd
 
 # Useful Constants
 from splat.test import DATA_DIR
@@ -89,7 +89,7 @@ class ContextTestCase(unittest.TestCase):
     """ Test Splat Helper """
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        conn = ldaputils.Connection(slapd.SLAPD_URI)
+        conn = ldapclient.Connection(slapd.SLAPD_URI)
         self.ctx = daemon.Context(conn)
         self.hc = plugin.HelperController('test', 'splat.test.test_daemon', 1, 'ou=People,dc=example,dc=com', '(uid=john)', False, None)
 

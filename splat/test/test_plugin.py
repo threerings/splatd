@@ -37,9 +37,12 @@
 
 from twisted.trial import unittest
 
-from splat import plugin, ldaputils
+from splat import plugin
+
+from splat.ldaputils import client as ldapclient
+from splat.ldaputils.test import slapd
+
 import ldap, time
-from splat.test import slapd
 
 # Useful Constants
 from splat.test import DATA_DIR
@@ -85,7 +88,7 @@ class HelperWithControllerTestCase(unittest.TestCase):
 
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        self.conn = ldaputils.Connection(slapd.SLAPD_URI)
+        self.conn = ldapclient.Connection(slapd.SLAPD_URI)
 
         options = {'test':'value'}
         self.hc = plugin.HelperController('test', 'splat.test.test_plugin', 5, 'dc=example,dc=com', '(uid=john)', False, options)
@@ -106,7 +109,7 @@ class HelperWithControllerTestCase(unittest.TestCase):
 
         # Find entry and modify it
         entry = self.conn.search(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(uid=john)', None)[0]
-        mod = ldaputils.Modification(entry.dn)
+        mod = ldapclient.Modification(entry.dn)
         mod.replace('description', 'Up the date')
         self.conn.modify(mod)
 
@@ -130,7 +133,7 @@ class HelperWithControllerTestCase(unittest.TestCase):
         self.hc.requireGroup = True
         # Add a group that will not match, and again ensure that the worker
         # is not called
-        filter = ldaputils.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=administrators))', 'uniqueMember')
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=administrators))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'administrators'})
         self.hc.work(self.conn)
         self.assertEquals(self.hc.helper.success, False)
@@ -139,14 +142,14 @@ class HelperWithControllerTestCase(unittest.TestCase):
         self.hc.requireGroup = True
         # Add a group that will match. Ensure that the worker is called with the
         # correct context
-        filter = ldaputils.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'developers'})
         self.hc.work(self.conn)
         self.assertEquals(self.hc.helper.success, True)
         self.assertEquals(self.hc.helper.context['group'], 'developers')
 
         # Add an additional group. Ensure that only the first group matches
-        filter = ldaputils.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'developers2'})
         self.hc.work(self.conn)
         self.assertEquals(self.hc.helper.success, True)

@@ -61,7 +61,8 @@ from twisted.internet import reactor, defer
 import ZConfig
 
 import splat
-from splat import ldaputils, daemon, plugin
+from splat import daemon, plugin
+from splat.ldaputils import client as ldapclient
 
 class FatalError(splat.SplatError):
     """
@@ -217,7 +218,7 @@ class Main(object):
         # Connect to our LDAP server
         self.logger.info("Connecting to %s" % self.config.LDAP.uri)
         try:
-            conn = ldaputils.Connection(self.config.LDAP.uri)
+            conn = ldapclient.Connection(self.config.LDAP.uri)
             conn.simple_bind(self.config.LDAP.binddn, self.config.LDAP.password)
         except ldap.LDAPError, e:
             d.errback(e)
@@ -254,9 +255,9 @@ class Main(object):
 
                     # Instantiate our group filter
                     if (group.memberattribute):
-                        groupFilter = ldaputils.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter, group.memberattribute)
+                        groupFilter = ldapclient.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter, group.memberattribute)
                     else:
-                        groupFilter = ldaputils.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter)
+                        groupFilter = ldapclient.GroupFilter(basedn, ldap.SCOPE_SUBTREE, group.searchfilter)
 
                     # Load group-specific helper options
                     groupOptions = {}

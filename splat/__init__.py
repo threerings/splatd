@@ -32,7 +32,7 @@
 
 import os
 
-__all__ = ['ldaputils', 'helpers', 'test']
+__all__ = ['helpers', 'test']
 
 # General Info
 __version__ = '1.0beta5'

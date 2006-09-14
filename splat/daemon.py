@@ -48,7 +48,7 @@ class Context(object):
     def __init__(self, ldapConnection):
         """
         Initialize a Splat Daemon context
-        @param ldapConnection: A connected instance of ldaputils.Connection
+        @param ldapConnection: A connected instance of ldaputils.client.Connection
         """
         self.svc = {}
         self.tasks = {}

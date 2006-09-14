@@ -88,7 +88,7 @@ class HelperController(object):
     def addGroup(self, groupFilter, helperOptions = None):
         """
         Add a new group filter.
-        @param groupFilter: Instance of ldaputils.GroupFilter
+        @param groupFilter: Instance of ldaputils.client.GroupFilter
         @param helperOptions; Group-specific helper options. Optional.
         """
         if (helperOptions):
