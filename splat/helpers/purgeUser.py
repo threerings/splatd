@@ -146,10 +146,11 @@ class Writer(homeHelper.Writer):
             # Recursively remove home directory contents
             try:
                 for filename in os.listdir(home):
-                    if (os.path.isdir(filename)):
-                        shutil.rmtree(os.path.join(home, filename))
+                    absPath = os.path.join(home, filename)
+                    if (os.path.isdir(absPath)):
+                        shutil.rmtree(absPath)
                     else:
-                        os.remove(os.path.join(home, filename))
+                        os.remove(absPath)
             except OSError, e:
                 outfd.write(str(e) + '\n')
                 outfd.close()
@@ -217,7 +218,7 @@ class Writer(homeHelper.Writer):
             return
         
         # If archiveHomeDir and not already archived or purged, archive homedir.
-        archiveFile = os.path.join(context.archiveDest, os.path.basename(home), '.tar.gz')
+        archiveFile = os.path.join(context.archiveDest, os.path.basename(home) + '.tar.gz')
         if (context.archiveHomeDir and (not os.path.isfile(archiveFile)) and os.path.isdir(home)):
             self._archiveHomeDir(home, archiveFile)
         
