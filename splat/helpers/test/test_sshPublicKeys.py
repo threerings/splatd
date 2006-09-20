@@ -41,7 +41,7 @@ import ldap
 
 import splat
 from splat import plugin
-from splat.ldaputils import client
+from splat.ldaputils import client as ldapclient
 from splat.ldaputils.test import slapd
 
 # Useful Constants
@@ -53,7 +53,7 @@ class SSHPublicKeystestCase(unittest.TestCase):
 
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        self.conn = client.Connection(slapd.SLAPD_URI)
+        self.conn = ldapclient.Connection(slapd.SLAPD_URI)
 
         # Benign options
         options = { 

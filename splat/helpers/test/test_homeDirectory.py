@@ -45,7 +45,7 @@ import os
 import splat
 from splat import plugin
 from splat.ldaputils.test import slapd
-from splat.ldaputils import client
+from splat.ldaputils import client as ldapclient
 
 # Useful Constants
 from splat.test import DATA_DIR
@@ -74,7 +74,7 @@ class HomeDirtestCase(unittest.TestCase):
 
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        self.conn = client.Connection(slapd.SLAPD_URI)
+        self.conn = ldapclient.Connection(slapd.SLAPD_URI)
         self.hc = plugin.HelperController('test', 'splat.helpers.homeDirectory', 5, 'dc=example,dc=com', '(uid=john)', False, self._getDefaultOptions())
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
 
