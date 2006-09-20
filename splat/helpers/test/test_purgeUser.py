@@ -38,9 +38,9 @@ import ldap
 import splat
 import time
 from twisted.trial import unittest
-from splat import ldaputils
 from splat import plugin
-from splat.test import slapd
+from splat.ldaputils import client
+from splat.ldaputils.test import slapd
 
 # Useful Constants
 from splat.test import DATA_DIR
@@ -53,14 +53,14 @@ class PurgeUserTestCase(unittest.TestCase):
         yesterday = time.strftime('%Y%m%d%H%M%SZ', time.gmtime(time.time() - 86400))
         self.conn.simple_bind('cn=Manager,dc=example,dc=com', 'secret')
         # Add a pendingPurge time in the past for the account specified by dn
-        mod = ldaputils.Modification(dn)
+        mod = client.Modification(dn)
         mod.add('pendingPurge', yesterday)
         self.conn.modify(mod)
         return yesterday
     
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        self.conn = ldaputils.Connection(slapd.SLAPD_URI)
+        self.conn = client.Connection(slapd.SLAPD_URI)
         
         # Benign options
         options = {

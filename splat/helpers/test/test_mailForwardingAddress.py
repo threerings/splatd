@@ -40,8 +40,9 @@ from twisted.trial import unittest
 import ldap
 
 import splat
-from splat import ldaputils, plugin
-from splat.test import slapd
+from splat import plugin
+from splat.ldaputils import client
+from splat.ldaputils.test import slapd
 
 # Useful Constants
 from splat.test import DATA_DIR
@@ -52,7 +53,7 @@ class MailForwardingAddresstestCase(unittest.TestCase):
 
     def setUp(self):
         self.slapd = slapd.LDAPServer()
-        self.conn = ldaputils.Connection(slapd.SLAPD_URI)
+        self.conn = client.Connection(slapd.SLAPD_URI)
 
         # Benign options
         options = { 
