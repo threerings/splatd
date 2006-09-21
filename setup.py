@@ -52,7 +52,8 @@ setup(
     ],
     packages = [
         'splat',
-        'splat.helpers'
+        'splat.helpers',
+        'splat.ldaputils'
     ],
     package_data = {'splat': ['data/splat_conf.xml']}
 )
