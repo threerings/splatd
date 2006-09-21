@@ -35,7 +35,7 @@ import os
 __all__ = ['helpers', 'test']
 
 # General Info
-__version__ = '1.1-rc2'
+__version__ = '1.1-rc3'
 __license__ = 'BSD License'
 __author__ = 'Three Rings Design, Inc.'
 __author_email__ = 'dpw@threerings.net'
