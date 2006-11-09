@@ -213,8 +213,12 @@
               <term>skeldir</term>
 
               <listitem>
-                <para>Home directory template. Defaults to
-                /usr/share/skel.</para>
+                <para>Path to a template or skeletal home directory. If this 
+                option is used, files named with a prefix of dot. such as 
+                <filename>dot.filename</filename> will be copied to <filename>
+                .filename</filename> in the created home directory. Files 
+                without this dot. prefix will have the same name in the new 
+                home directory.</para>
               </listitem>
             </varlistentry>
 

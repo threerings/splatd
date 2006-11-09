@@ -46,7 +46,7 @@ logger = logging.getLogger(splat.LOG_NAME)
 class WriterContext(homeHelper.WriterContext):
     def __init__(self):
         homeHelper.WriterContext.__init__(self)
-        self.skeldir = '/usr/share/skel' # Default skeletal home directory
+        self.skeldir = None
         self.postcreate = None
 
 class Writer(homeHelper.Writer):
@@ -124,8 +124,10 @@ class Writer(homeHelper.Writer):
         else:
             return
 
-        # Copy files from skeletal directories to user's home directory
-        self._copySkelDir(context.skeldir, home, uid, gid)
+        # Copy files from skeletal directories to user's home directory if we
+        # are using a skeldir          
+        if (context.skeldir != None):
+            self._copySkelDir(context.skeldir, home, uid, gid)
 
         # Fork and run post create script if it was defined
         if (context.postcreate != None):

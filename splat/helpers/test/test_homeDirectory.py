@@ -55,19 +55,19 @@ class HomeDirtestCase(unittest.TestCase):
     def _getDefaultOptions(self):
         # Ubuntu (and probably Debian and other linuxes) use /etc/skel instead
         # of /usr/share skel.
-        defSkel = '/usr/share/skel'
-        if (not os.path.isdir(defSkel)):
+        skelDir = '/usr/share/skel'
+        if (not os.path.isdir(skelDir)):
             if (os.path.isdir('/etc/skel')):
-                defSkel = '/etc/skel'
+                skelDir = '/etc/skel'
             else:
-                self.fail('Can not find a useable default skeletal directory')
+                self.fail('Can not find a useable skeletal directory')
             
         return { 
 
             'home':'/home',
             'minuid':'0',
             'mingid':'0',
-            'skeldir':defSkel
+            'skeldir':skelDir
         }
         
     """ Test Splat Home Directory Helper """
@@ -88,7 +88,11 @@ class HomeDirtestCase(unittest.TestCase):
         options['foo'] = 'bar' 
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
         # Make sure the parser works when all options are valid
-        assert self.hc.helper.parseOptions(self._getDefaultOptions())
+        del options['foo']
+        assert self.hc.helper.parseOptions(options)
+        # Also make sure parser works when skeldir has not been defined
+        del options['skeldir']
+        assert self.hc.helper.parseOptions(options)
 
     def test_option_parse_home(self):
         """ Test Home Option Parser """
