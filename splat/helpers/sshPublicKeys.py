@@ -119,7 +119,7 @@ class Writer(homeDirectory.Writer):
                 # This will only occur on the very first daemon iteration,
                 # where modified is always 'True'
                 if (entryTime < keyTime):
-                    logger.info("Skipping %s, up-to-date" % filename)
+                    logger.debug("Skipping %s, up-to-date" % filename)
                     return
     
             except OSError:
