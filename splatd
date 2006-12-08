@@ -276,7 +276,7 @@ class Main(object):
 
             except plugin.SplatPluginError, e:
                 # This is a fatal error
-                d.errback(FatalError("Error initializing service '%s': %s", service.getSectionName(), e))
+                d.errback(FatalError("Error initializing service '%s': %s" % (service.getSectionName(), e)))
                 return d
 
             ctx.addHelper(hc)
