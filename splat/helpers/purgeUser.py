@@ -68,7 +68,7 @@ class Writer(homeHelper.Writer):
         for opt in superContext.keys():
             setattr(context, opt, superContext[opt])
                 
-        for key in options.keys():
+        for key in options.iterkeys():
             if (key == 'archivehomedir'):
                 context.archiveHomeDir = self._parseBooleanOption(str(options[key]))
                 continue
