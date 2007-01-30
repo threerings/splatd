@@ -58,19 +58,23 @@ class PurgeUserTestCase(unittest.TestCase):
         self.conn.modify(mod)
         return yesterday
     
+    # Return a valid options dictionary to parse. Note that these options are 
+    # not necessarily the same as the defaults specified in the various plugin 
+    # WriterContext classes.
+    def _getDefaultOptions(self):
+        return {
+            'archivehomedir':'false',
+            'purgehomedir':'false',
+            'purgehomearchive':'false',
+            'archivedest':'/tmp',
+            'purgearchivewait':'5'
+        }
+    
     def setUp(self):
         self.slapd = slapd.LDAPServer()
         self.conn = ldapclient.Connection(slapd.SLAPD_URI)
         
-        # Benign options
-        options = {
-            'archivehomedir':'true',
-            'purgehomedir':'true',
-            'purgehomearchive':'true',
-            'archivedest':'/'
-        }
-        
-        self.hc = plugin.HelperController('test', 'splat.helpers.purgeUser', 5, 'dc=example,dc=com', '(uid=chris)', False, options)
+        self.hc = plugin.HelperController('test', 'splat.helpers.purgeUser', 5, 'dc=example,dc=com', '(objectClass=purgeableAccount)', False, self._getDefaultOptions())
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
@@ -80,31 +84,20 @@ class PurgeUserTestCase(unittest.TestCase):
         self.slapd.stop()
 
     def test_pendingPurge(self):
-        # Make sure pendingPurge attribute gets set right for test user
+        """ Test pendingPurge Attribute """
         yesterday = self._setPendingPurge('uid=chris,ou=People,dc=example,dc=com')
         results = self.conn.search('dc=example,dc=com', ldap.SCOPE_SUBTREE, '(uid=chris)', None)
         self.assertEqual(yesterday, results[0].attributes['pendingPurge'][0])
 
-    def test_parseOptions(self):
-        """ Test parseOptions() """
-        options = {
-            'archivehomedir':'false',
-            'purgehomedir':'false',
-            'purgehomearchive':'false',
-            'archivedest':'/tmp',
-            'purgearchivewait':'5',
-            'foo':'bar'
-        }
+    def test_invalid_options(self):
+        """ Test Invalid Options """
+        options = self._getDefaultOptions()
+        options['foo'] = 'bar'
         # First test if the parser complains about invalid options.
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
         # Then make sure it works when the options are valid.
         del options['foo']
-        context = self.hc.helper.parseOptions(options)
-        self.assertEqual(False, context.archiveHomeDir)
-        self.assertEqual(False, context.purgeHomeDir)
-        self.assertEqual(False, context.purgeHomeArchive)
-        self.assertEqual('/tmp', context.archiveDest)
-        self.assertEqual(5, context.purgeArchiveWait)
+        assert self.hc.helper.parseOptions(options)
 
     def test_default_options(self):
         """ Test Default Options """
@@ -115,8 +108,17 @@ class PurgeUserTestCase(unittest.TestCase):
         self.assertEqual('/home', context.archiveDest)
         self.assertEqual(14, context.purgeArchiveWait)
         
-    def test_invalid_options(self):
-        """ Test Error Handling of Invalid Options """
+    def test_bad_option_values(self):
+        """ Test Validation of Bad Option Values """
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivedest':'/asdf'})
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'purgehomedir':'42'})
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivehomedir':'false', 'purgehomearchive':'true'})
+
+    def test_context(self):
+        """ Test Context Consistency With Options """
+        context = self.hc.helper.parseOptions(self._getDefaultOptions())
+        self.assertEqual(False, context.archiveHomeDir)
+        self.assertEqual(False, context.purgeHomeDir)
+        self.assertEqual(False, context.purgeHomeArchive)
+        self.assertEqual('/tmp', context.archiveDest)
+        self.assertEqual(5, context.purgeArchiveWait)

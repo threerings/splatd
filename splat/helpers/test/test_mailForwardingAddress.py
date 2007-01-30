@@ -51,18 +51,22 @@ from splat.test import DATA_DIR
 class MailForwardingAddresstestCase(unittest.TestCase):
     """ Test Splat Mail Forwarding Helper """
 
+    # Return a valid options dictionary to parse. Note that these options are 
+    # not necessarily the same as the defaults specified in the various plugin 
+    # WriterContext classes.
+    def _getDefaultOptions(self):
+        return { 
+            'home':'/home',
+            'minuid':'0',
+            'mingid':'0',
+            'makehome':'true'
+        }
+
     def setUp(self):
         self.slapd = slapd.LDAPServer()
         self.conn = ldapclient.Connection(slapd.SLAPD_URI)
 
-        # Benign options
-        options = { 
-            'home':'/home',
-            'minuid':'0',
-            'mingid':'0'
-        }
-
-        self.hc = plugin.HelperController('test', 'splat.helpers.mailForwardingAddress', 5, 'dc=example,dc=com', '(uid=john)', False, options)
+        self.hc = plugin.HelperController('test', 'splat.helpers.mailForwardingAddress', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self._getDefaultOptions())
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
@@ -71,14 +75,10 @@ class MailForwardingAddresstestCase(unittest.TestCase):
     def tearDown(self):
         self.slapd.stop()
 
-    def test_option_parser(self):
-        """ Test Option Parser """
-        options = {
-            'home':'/home',
-            'minuid':'0',
-            'mingid':'0',
-            'foo':'bar'
-        }
+    def test_invalid_option(self):
+        """ Test Invalid Option """
+        options = self._getDefaultOptions()
+        options['foo'] = 'bar'
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
         # Make sure the parser works when all options are valid
         del options['foo']
@@ -107,3 +107,22 @@ class MailForwardingAddresstestCase(unittest.TestCase):
         }
         self.context = self.hc.helper.parseOptions(options)
         self.assertRaises(splat.SplatError, self.hc.helper.work, self.context, self.entries[0], self.modified)
+
+    def test_context(self):
+        """ Test Context Consistency With Options """
+        context = self.hc.helper.parseOptions(self._getDefaultOptions())
+        self.assertEquals(context.makehome, True)
+
+    def test_group_context(self):
+        """ Test Group Context Consistency With Options """
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        self.hc.addGroup(filter)
+        self.assertEquals(self.hc.groupsCtx[filter].makehome, True)
+
+    def test_group_context_custom(self):
+        """ Test Group Context Consistency With Group Specific Options """
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        self.hc.addGroup(filter, {'minuid':'10'})
+        self.assertEquals(self.hc.groupsCtx[filter].minuid, 10)
+        self.assertEquals(self.hc.groupsCtx[filter].mingid, 0)
+        self.assertEquals(self.hc.groupsCtx[filter].makehome, True)

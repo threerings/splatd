@@ -52,6 +52,11 @@ from splat.test import DATA_DIR
 
 # Test Cases
 class HomeDirtestCase(unittest.TestCase):
+    """ Test Splat Home Directory Helper """
+    
+    # Return a valid options dictionary to parse. Note that these options are 
+    # not necessarily the same as the defaults specified in the various plugin 
+    # WriterContext classes.
     def _getDefaultOptions(self):
         # Ubuntu (and probably Debian and other linuxes) use /etc/skel instead
         # of /usr/share skel.
@@ -69,20 +74,18 @@ class HomeDirtestCase(unittest.TestCase):
             'mingid':'0',
             'skeldir':skelDir
         }
-        
-    """ Test Splat Home Directory Helper """
 
     def setUp(self):
         self.slapd = slapd.LDAPServer()
         self.conn = ldapclient.Connection(slapd.SLAPD_URI)
-        self.hc = plugin.HelperController('test', 'splat.helpers.homeDirectory', 5, 'dc=example,dc=com', '(uid=john)', False, self._getDefaultOptions())
+        self.hc = plugin.HelperController('test', 'splat.helpers.homeDirectory', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self._getDefaultOptions())
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
 
     def tearDown(self):
         self.slapd.stop()
 
-    def test_option_parser(self):
-        """ Test Options Parser """
+    def test_invalid_options(self):
+        """ Test Invalid Options """
         # foo is not a valid option
         options = self._getDefaultOptions()
         options['foo'] = 'bar' 
@@ -137,3 +140,25 @@ class HomeDirtestCase(unittest.TestCase):
         attrs = self.hc.helper.getAttributes(self.context, self.entries[0])
         self.failUnlessEqual(realAttrs, attrs)
 
+    def test_context(self):
+        """ Test Context Consistency With Options """
+        context = self.hc.helper.parseOptions(self._getDefaultOptions())
+        self.assertEquals(context.home, '/home')
+        self.assertEquals(context.minuid, 0)
+        self.assertEquals(context.mingid, 0)
+        
+    def test_group_context(self):
+        """ Test Group Context Consistency With Options """
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        self.hc.addGroup(filter)
+        self.assertEquals(self.hc.groupsCtx[filter].home, '/home')
+        self.assertEquals(self.hc.groupsCtx[filter].minuid, 0)
+        self.assertEquals(self.hc.groupsCtx[filter].mingid, 0)
+
+    def test_group_context_custom(self):
+        """ Test Group Context Consistency With Group Specific Options """
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
+        self.hc.addGroup(filter, {'minuid':'10'})
+        self.assertEquals(self.hc.groupsCtx[filter].minuid, 10)
+        self.assertEquals(self.hc.groupsCtx[filter].home, '/home')
+        self.assertEquals(self.hc.groupsCtx[filter].mingid, 0)
