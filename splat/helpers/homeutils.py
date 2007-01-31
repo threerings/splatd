@@ -46,7 +46,7 @@ def requiredAttributes():
     """
     return ('homeDirectory', 'gidNumber', 'uidNumber')
 
-def getLDAPAttributes(ldapEntry, minuid, mingid, home):
+def getLDAPAttributes(ldapEntry, homePath=None, minuid=None, mingid=None):
     """
     Extract home directory, numberic uid, and numeric gid 
     attributes from an LDAP record. Also validates these attributes
@@ -54,10 +54,10 @@ def getLDAPAttributes(ldapEntry, minuid, mingid, home):
     
     @param ldapEntry: ldaputils.client.Entry object representing 
         an LDAP record for a user.
+    @param homePath: LDAP record's homeDirectory must be located within 
+        path given by this string.
     @param minuid: LDAP record's minimum acceptable uidNumber.
     @param mingid: LDAP record's minimum acceptable gidNumber.
-    @param home: LDAP record's homeDirectory must be located within 
-        path given by this string.
     @returns tuple containing the first homeDirectory, uidNumber, 
         and gidNumber attributes in ldapEntry.
     """
@@ -65,26 +65,26 @@ def getLDAPAttributes(ldapEntry, minuid, mingid, home):
 
     # Test for required attributes
     if (not (attributes.has_key('homeDirectory') and attributes.has_key('uidNumber') and attributes.has_key('gidNumber'))):
-        raise plugin.SplatPluginError, "Required attributes homeDirectory, uidNumber, and gidNumber not all specified."
+        raise plugin.SplatPluginError, "Required attributes homeDirectory, uidNumber, and gidNumber not all specified for dn %s." % ldapEntry.dn
 
     home = attributes.get("homeDirectory")[0]
     uid = int(attributes.get("uidNumber")[0])
     gid = int(attributes.get("gidNumber")[0])
 
     # Validate the home directory
-    if (home != None):
-        givenPath = os.path.abspath(home).split('/')
-        if (len(givenPath) < len(splitHome)):
-            raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, home, ldapEntry.dn)
-
-        for i in range(0, len(splitHome)):
-            if (splitHome[i] != givenPath[i]):
-                raise plugin.SplatPluginError, "LDAP Server returned home directory (%s) located outside of %s for entry '%s'" % (home, home, ldapEntry.dn)
+    if (homePath != None):
+        # Path the user's home directory must be within.
+        splitHomePath = homePath.split('/')
+        # User's actual home directory.
+        splitHome = home.split('/')
+        for i in range(0, len(splitHomePath)):
+            if (splitHomePath[i] != splitHome[i]):
+                raise plugin.SplatPluginError, "LDAP Server returned home directory %s located outside of %s for dn %s" % (home, homePath, ldapEntry.dn)
 
     # Validate the UID
     if (minuid != None):
         if (minuid > uid):
-            raise plugin.SplatPluginError, "LDAP Server returned uid %d less than specified minimum uid of %d for entry '%s'" % (uid, minuid, ldapEntry.dn)
+            raise plugin.SplatPluginError, "LDAP Server returned uid %d less than specified minimum uid of %d for dn %s" % (uid, minuid, ldapEntry.dn)
 
     # Validate the GID
     if (mingid != None):
@@ -93,12 +93,13 @@ def getLDAPAttributes(ldapEntry, minuid, mingid, home):
 
     return (home, uid, gid)
 
-def makeHomeDir(ldapeEntry, skeldir, postcreate):
+def makeHomeDir(home, uid, gid, skeldir=None, postcreate=None):
     """
-    Create a home directory for an LDAP user.
+    Create a home directory.
     
-    @param ldapEntry: ldaputils.client.Entry object representing 
-        an LDAP record for a user.
+    @param home: Path of home directory to create.
+    @param uid: Numeric user ID of home directory owner.
+    @param gid: Numerid group ID of home directory owner.
     @param skeldir: Optional skeletal home directory to copy files 
         from. Files with names such as dot.foo will be copied to 
         the user's home directory as .foo.
@@ -106,7 +107,6 @@ def makeHomeDir(ldapeEntry, skeldir, postcreate):
         has been created. The script will be given the user's uid, 
         gid, and home directory as arguments.
     """
-    (home, uid, gid) = getLDAPAttributes(ldapEntry)
     # Create the home directory, unless it already exists
     if (not os.path.isdir(home)):
         try:

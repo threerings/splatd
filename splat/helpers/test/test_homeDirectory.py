@@ -68,7 +68,6 @@ class HomeDirtestCase(unittest.TestCase):
                 self.fail('Can not find a useable skeletal directory')
             
         return { 
-
             'home':'/home',
             'minuid':'0',
             'mingid':'0',
@@ -110,35 +109,6 @@ class HomeDirtestCase(unittest.TestCase):
         options = self._getDefaultOptions()
         options['skeldir'] = '/asdf/jklh/qwer'
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
-
-    def test_validation_home(self):
-        """ Test Home Validation """
-        options = self._getDefaultOptions()
-        options['home'] = '/etc'
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.getAttributes, self.context, self.entries[0])
-
-    def test_validation_uid(self):
-        """ Test UID Validation """
-        options = self._getDefaultOptions()
-        options['minuid'] = '9000000'
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.getAttributes, self.context, self.entries[0])
-
-    def test_validation_home(self):
-        """ Test GID Validation """
-        options = self._getDefaultOptions()
-        options['mingid'] = '9000000'
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.getAttributes, self.context, self.entries[0])
-
-    def test_attributes(self):
-        """ Test Attributes """
-        options = self._getDefaultOptions()
-        self.context = self.hc.helper.parseOptions(options)
-        realAttrs = ('/home/john', 10001, 10001)
-        attrs = self.hc.helper.getAttributes(self.context, self.entries[0])
-        self.failUnlessEqual(realAttrs, attrs)
 
     def test_context(self):
         """ Test Context Consistency With Options """

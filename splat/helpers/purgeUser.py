@@ -53,7 +53,6 @@ class WriterContext(object):
         self.home = None
         self.minuid = None
         self.mingid = None
-        self.splitHome = None
         self.archiveHomeDir = True
         self.purgeHomeDir = True
         self.purgeHomeArchive = True
@@ -72,8 +71,6 @@ class Writer(plugin.Helper):
                 context.home = str(options[key])
                 if (context.home[0] != '/'):
                     raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
-                splitHome = context.home.split('/')
-                context.splitHome = splitHome
                 continue
             if (key == 'minuid'):
                 context.minuid = int(options[key])
@@ -215,13 +212,12 @@ class Writer(plugin.Helper):
         # Get all needed LDAP attributes, and verify we have what we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('pendingPurge')):
-            # XXX: include dn here to aid in debugging when this happens
-            raise plugin.SplatPluginError, "Required attribute pendingPurge not found in LDAP entry."
+            raise plugin.SplatPluginError, "Required attribute pendingPurge not found for dn %s." % ldapEntry.dn
         if (not attributes.has_key('uid')):
-            raise plugin.SplatPluginError, "Required attribute uid not found in LDAP entry."
+            raise plugin.SplatPluginError, "Required attribute uid not found for dn %s." % ldapEntry.dn
         pendingPurge = attributes.get('pendingPurge')[0]
         username = attributes.get('uid')[0]
-        (home, uidNumber, gidNumber) = homeutils.getLDAPAttributes(ldapEntry, context.minuid, context.mingid, context.home)
+        (home, uidNumber, gidNumber) = homeutils.getLDAPAttributes(ldapEntry, context.home, context.minuid, context.mingid)
         
         # Get current time (in GMT). 
         now = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time())))

@@ -44,7 +44,6 @@ class WriterContext(object):
         self.home = None
         self.minuid = None
         self.mingid = None
-        self.splitHome = None
         self.skeldir = None
         self.postcreate = None
 
@@ -60,8 +59,6 @@ class Writer(plugin.Helper):
                 context.home = str(options[key])
                 if (context.home[0] != '/'):
                     raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
-                splitHome = context.home.split('/')
-                context.splitHome = splitHome
                 continue
             if (key == 'minuid'):
                 context.minuid = int(options[key])
@@ -88,4 +85,5 @@ class Writer(plugin.Helper):
             return
         
         # Otherwise create the home directory
-        homeutils.makeHomeDir(ldapEntry, context.skeldir, context.postcreate)
+        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.home, context.minuid, context.mingid)
+        homeutils.makeHomeDir(home, uid, gid, context.skeldir, context.postcreate)

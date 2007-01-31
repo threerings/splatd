@@ -54,7 +54,6 @@ class WriterContext(object):
         self.home = None
         self.minuid = None
         self.mingid = None
-        self.splitHome = None
         self.skeldir = None
         self.postcreate = None
         self.makehome = False
@@ -72,8 +71,6 @@ class Writer(plugin.Helper):
                 context.home = str(options[key])
                 if (context.home[0] != '/'):
                     raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
-                splitHome = context.home.split('/')
-                context.splitHome = splitHome
                 continue
             if (key == 'minuid'):
                 context.minuid = int(options[key])
@@ -93,6 +90,7 @@ class Writer(plugin.Helper):
             if (key == 'makehome'):
                 context.makehome = self._parseBooleanOption(str(options[key]))
                 continue
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
 
         return context
     
@@ -104,15 +102,14 @@ class Writer(plugin.Helper):
         # Get LDAP attributes, and make sure we have all the ones we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('mailForwardingAddress')):
-            # XXX: include dn here to aid in debugging when this happens
-            raise plugin.SplatPluginError, "Required attribute mailForwardingAddress not specified."
+            raise plugin.SplatPluginError, "Required attribute mailForwardingAddress not found for dn %s." % ldapEntry.dn
         addresses = attributes.get("mailForwardingAddress")
-        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.minuid, context.mingid, context.home)
+        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.home, context.minuid, context.mingid)
 
         # If config says to create the home directory and it doesn't exist, do so.
         if (not os.path.isdir(home)):
             if (context.makehome == True):
-                homeutils.makeHomeDirectory(ldapEntry, context.skeldir, context.postcreate)
+                homeutils.makeHomeDirectory(home, uid, gid, context.skeldir, context.postcreate)
             else:
                 # If we weren't told to make homedir, log a warning and quit
                 logger.warning(".forward file not being written because home directory %s does not exist. To have this home directory created automatically by this plugin, set the makehome option to true in your splat configuration file, or use the homeDirectory plugin." % home)

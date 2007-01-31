@@ -51,7 +51,6 @@ class WriterContext(object):
         self.home = None
         self.minuid = None
         self.mingid = None
-        self.splitHome = None
         self.skeldir = None
         self.postcreate = None
         self.makehome = False
@@ -71,8 +70,6 @@ class Writer(plugin.Helper):
                 context.home = str(options[key])
                 if (context.home[0] != '/'):
                     raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
-                splitHome = context.home.split('/')
-                context.splitHome = splitHome
                 continue
             if (key == 'minuid'):
                 context.minuid = int(options[key])
@@ -96,7 +93,8 @@ class Writer(plugin.Helper):
             if (key == 'makehome'):
                 context.makehome = self._parseBooleanOption(str(options[key]))
                 continue
-        
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key        
+
         return context
 
     def work(self, context, ldapEntry, modified):
@@ -107,15 +105,14 @@ class Writer(plugin.Helper):
         # Get all needed LDAP attributes, and verify we have what we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('sshPublicKey')):
-            # XXX: include dn here to aid in debugging when this happens
-            raise plugin.SplatPluginError, "Required attribute sshPublicKey not specified."
+            raise plugin.SplatPluginError, "Required attribute sshPublicKey not found for dn %s." % ldapEntry.dn
         keys = attributes.get("sshPublicKey")
-        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.minuid, context.mingid, context.home)
+        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.home, context.minuid, context.mingid)
 
         # Make sure the home directory exists, and make it if config says to
         if (not os.path.isdir(home)):
             if (context.makehome == True):
-                homeutils.makeHomeDir(ldapEntry, context.skeldir, context.postcreate)
+                homeutils.makeHomeDir(home, uid, gid, context.skeldir, context.postcreate)
             else:
                 # If we weren't told to make homedir, log a warning and quit
                 logger.warning("SSH keys not being written because home directory %s does not exist. To have this home directory created automatically by this plugin, set the makehome option to true in your splat configuration file, or use the homeDirectory plugin." % home)
