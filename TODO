@@ -1,3 +1,5 @@
+- Minimize code duplication in plugin parseOptions() methods by extending  
+  ZConfig. 
 - Plugins for cleaning up mediawiki and bugzilla databases when accounts are
   deleted.
 - Make ./setup.py install also install man pages and perhaps xhtml 
