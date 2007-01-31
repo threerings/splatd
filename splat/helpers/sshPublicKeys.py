@@ -37,8 +37,7 @@ import os, stat, time
 
 import splat
 from splat import plugin
-
-import homeDirectory
+import homeutils
 
 logger = logging.getLogger(splat.LOG_NAME)
 
@@ -47,36 +46,56 @@ SSH_ERR_NONE = 0
 SSH_ERR_MISC = 1
 SSH_ERR_PRIVSEP = 2
 SSH_ERR_WRITE = 3
-class WriterContext(homeDirectory.WriterContext):
+class WriterContext(object):
     def __init__(self):
-        homeDirectory.WriterContext.__init__(self)
-        self.command = None
+        self.home = None
+        self.minuid = None
+        self.mingid = None
+        self.splitHome = None
+        self.skeldir = None
+        self.postcreate = None
         self.makehome = False
+        self.command = None
 
-class Writer(homeDirectory.Writer):
+class Writer(plugin.Helper):
     # Required Attributes
     def attributes(self): 
-        return ('sshPublicKey',) + homeDirectory.Writer.attributes(self) 
+        return ('sshPublicKey',) + homeutils.requiredAttributes()
 
     def parseOptions(self, options):
         context = WriterContext()
 
         # Get command and makehome options, if they were given
-        for key in options.keys():
+        for key in options.iterkeys():
+            if (key == 'home'):
+                context.home = str(options[key])
+                if (context.home[0] != '/'):
+                    raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
+                splitHome = context.home.split('/')
+                context.splitHome = splitHome
+                continue
+            if (key == 'minuid'):
+                context.minuid = int(options[key])
+                continue
+            if (key == 'mingid'):
+                context.mingid = int(options[key])
+                continue
+            if (key == 'skeldir'):
+                context.skeldir = os.path.abspath(options[key])
+                # Validate skel directory
+                if (not os.path.isdir(context.skeldir)):
+                    raise plugin.SplatPluginError, "Skeletal home directory %s does not exist or is not a directory" % context.skeldir
+                continue
+            if (key == 'postcreate'):
+                context.postcreate = os.path.abspath(options[key])
+                continue
             if (key == 'command'):
                 context.command = options[key]
                 # Superclass parseOptions() method won't like this option
-                del options[key]
                 continue
             if (key == 'makehome'):
                 context.makehome = self._parseBooleanOption(str(options[key]))
-                del options[key]
                 continue
-                
-        # Add options superclass is concerned with to context.
-        superContext = vars(homeDirectory.Writer.parseOptions(self, options))
-        for opt in superContext.keys():
-            setattr(context, opt, superContext[opt])
         
         return context
 
@@ -88,19 +107,19 @@ class Writer(homeDirectory.Writer):
         # Get all needed LDAP attributes, and verify we have what we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('sshPublicKey')):
+            # XXX: include dn here to aid in debugging when this happens
             raise plugin.SplatPluginError, "Required attribute sshPublicKey not specified."
         keys = attributes.get("sshPublicKey")
-        (home, uid, gid) = self.getAttributes(context, ldapEntry)
+        (home, uid, gid) = homeutils.getLDAPAttributes(ldapEntry, context.minuid, context.mingid, context.home)
 
         # Make sure the home directory exists, and make it if config says to
         if (not os.path.isdir(home)):
             if (context.makehome == True):
-                homeDirectory.Writer.work(self, context, ldapEntry, modified)
+                homeutils.makeHomeDir(ldapEntry, context.skeldir, context.postcreate)
             else:
                 # If we weren't told to make homedir, log a warning and quit
                 logger.warning("SSH keys not being written because home directory %s does not exist. To have this home directory created automatically by this plugin, set the makehome option to true in your splat configuration file, or use the homeDirectory plugin." % home)
                 return
-
 
         sshdir = "%s/.ssh" % home
         tmpfilename = "%s/.ssh/authorized_keys.tmp" % home

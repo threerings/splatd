@@ -37,7 +37,7 @@ import shutil
 import tarfile
 import time
 import errno
-import homeHelper
+import homeutils
 import splat
 from splat import plugin
 
@@ -48,27 +48,39 @@ PURGE_ERR_NONE = 0
 PURGE_ERR_PRIVSEP = 1
 PURGE_ERR_RM = 2
 
-class WriterContext(homeHelper.WriterContext):
+class WriterContext(object):
     def __init__(self):
-        homeHelper.WriterContext.__init__(self)
+        self.home = None
+        self.minuid = None
+        self.mingid = None
+        self.splitHome = None
         self.archiveHomeDir = True
         self.purgeHomeDir = True
         self.purgeHomeArchive = True
         self.archiveDest = '/home'
         self.purgeArchiveWait = 14
 
-class Writer(homeHelper.Writer):
+class Writer(plugin.Helper):
     def attributes(self): 
-        return ('pendingPurge', 'uid') + homeHelper.Writer.attributes(self)
+        return ('pendingPurge', 'uid') + homeutils.requiredAttributes()
 
     def parseOptions(self, options):
         context = WriterContext()
-        # Add options superclass is concerned with to context.
-        superContext = vars(homeHelper.Writer.parseOptions(self, options))
-        for opt in superContext.keys():
-            setattr(context, opt, superContext[opt])
                 
         for key in options.iterkeys():
+            if (key == 'home'):
+                context.home = str(options[key])
+                if (context.home[0] != '/'):
+                    raise plugin.SplatPluginError, "Relative paths for the home option are not permitted"
+                splitHome = context.home.split('/')
+                context.splitHome = splitHome
+                continue
+            if (key == 'minuid'):
+                context.minuid = int(options[key])
+                continue
+            if (key == 'mingid'):
+                context.mingid = int(options[key])
+                continue
             if (key == 'archivehomedir'):
                 context.archiveHomeDir = self._parseBooleanOption(str(options[key]))
                 continue
@@ -203,12 +215,13 @@ class Writer(homeHelper.Writer):
         # Get all needed LDAP attributes, and verify we have what we need
         attributes = ldapEntry.attributes
         if (not attributes.has_key('pendingPurge')):
+            # XXX: include dn here to aid in debugging when this happens
             raise plugin.SplatPluginError, "Required attribute pendingPurge not found in LDAP entry."
         if (not attributes.has_key('uid')):
             raise plugin.SplatPluginError, "Required attribute uid not found in LDAP entry."
         pendingPurge = attributes.get('pendingPurge')[0]
         username = attributes.get('uid')[0]
-        (home, uidNumber, gidNumber) = self.getAttributes(context, ldapEntry)
+        (home, uidNumber, gidNumber) = homeutils.getLDAPAttributes(ldapEntry, context.minuid, context.mingid, context.home)
         
         # Get current time (in GMT). 
         now = int(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time())))
