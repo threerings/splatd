@@ -50,24 +50,17 @@ from splat.test import DATA_DIR
 # Test Cases
 class SSHPublicKeystestCase(unittest.TestCase):
     """ Test Splat SSH Helper """
-
-    # Return a valid options dictionary to parse. Note that these options are 
-    # not necessarily the same as the defaults specified in the various plugin 
-    # WriterContext classes.
-    def _getDefaultOptions(self):
-        return { 
+    def setUp(self):
+        self.options = { 
             'home':'/home',
             'minuid':'0',
             'mingid':'0',
             'command':'/bin/sh',
             'makehome':'true'
         }
-
-    def setUp(self):
         self.slapd = slapd.LDAPServer()
         self.conn = ldapclient.Connection(slapd.SLAPD_URI)
-
-        self.hc = plugin.HelperController('test', 'splat.helpers.sshPublicKeys', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self._getDefaultOptions())
+        self.hc = plugin.HelperController('test', 'splat.helpers.sshPublicKeys', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self.options)
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
@@ -76,14 +69,15 @@ class SSHPublicKeystestCase(unittest.TestCase):
     def tearDown(self):
         self.slapd.stop()
 
+    def test_valid_options(self):
+        """ Test Parsing of Valid Options """
+        assert self.hc.helper.parseOptions(self.options)
+
     def test_invalid_option(self):
         """ Test Invalid Option """
-        options = self._getDefaultOptions()
+        options = self.options
         options['foo'] = 'bar'
         self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
-        # Make sure the parser works when all options are valid
-        del options['foo']
-        assert self.hc.helper.parseOptions(options)
 
     def test_option_home(self):
         """ Test Home Directory Validation """
@@ -111,12 +105,12 @@ class SSHPublicKeystestCase(unittest.TestCase):
         
     def test_context(self):
         """ Test Context Consistency With Options """
-        context = self.hc.helper.parseOptions(self._getDefaultOptions())
+        context = self.hc.helper.parseOptions(self.options)
         self.assertEquals(context.makehome, True)
         self.assertEquals(context.command, '/bin/sh')
 
     def test_group_context(self):
-        """ Test Group Context Consistency With Options """
+        """ Test Group Context Consistency With Service Options """
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
         self.hc.addGroup(filter)
         self.assertEquals(self.hc.groupsCtx[filter].makehome, True)
@@ -124,8 +118,14 @@ class SSHPublicKeystestCase(unittest.TestCase):
 
     def test_group_context_custom(self):
         """ Test Group Context Consistency With Group Specific Options """
+        options = self.options
+        # Run parseOptions here to make sure the options dictionary is not 
+        # being modified by it.
+        self.hc.helper.parseOptions(options)
+        # Now update with a custom option for this group.
+        options['command'] = '/bin/csh'
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
-        self.hc.addGroup(filter, {'command':'/bin/csh'})
+        self.hc.addGroup(filter, options)
         self.assertEquals(self.hc.groupsCtx[filter].command, '/bin/csh')
         self.assertEquals(self.hc.groupsCtx[filter].makehome, True)
         self.assertEquals(self.hc.groupsCtx[filter].minuid, 0)
