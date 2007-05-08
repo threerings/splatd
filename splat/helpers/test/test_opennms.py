@@ -67,6 +67,14 @@ class OpenNMSTestCase (unittest.TestCase):
         user = self.users.findUser(TEST_USER)
         self.assertEquals(user.find("user-id").text, TEST_USER)
 
+    def test_createUser (self):
+        self.users.deleteUser(TEST_USER)
+        user = self.users.createUser(TEST_USER)
+        self.users.updateUser(user, fullName="testname")
+
+        user = self.users.findUser(TEST_USER)
+        self.assertEquals(user.find("full-name").text, "testname")
+
     def test_updateUser (self):
         user = self.users.findUser(TEST_USER)
         self.users.updateUser(user, fullName="testname", xmppAddress=("joe",), numericPager=("555", "Monopoly"))

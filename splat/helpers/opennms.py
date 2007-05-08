@@ -43,6 +43,12 @@ except ImportError:
 XML_USERS_NAMESPACE = "http://xmlns.opennms.org/xsd/users"
 XML_GROUPS_NAMESPACE = "http://xmlns.opennms.org/xsd/groups"
 
+class UserExistsException (splat.plugin.SplatPluginError):
+    pass
+
+class NoSuchUserException (splat.plugin.SplatPluginError):
+    pass
+
 class Users (object):
     def __init__ (self, path):
         self.doc = ElementTree.ElementTree(file = path)
@@ -55,6 +61,9 @@ class Users (object):
 
         # Not found
         return None
+
+    def _getUsers (self):
+        return self.doc.find("./{%s}users" % (XML_USERS_NAMESPACE))
 
     @classmethod
     def _setChildElementText (self, parentNode, nodeName, text):
@@ -77,6 +86,60 @@ class Users (object):
                 return node
 
         return None
+
+    def deleteUser (self, username):
+        user = self.findUser(username)
+        if (self.findUser == None):
+            raise NoSuchUserException("Could not find user %s." % username)
+
+        users = self._getUsers()
+        users.remove(user)
+
+    def createUser (self, username, fullName = "", comments = "", password = "XXX"):
+        """
+        Insert and return a new user record.
+        @param username User's login name
+        @param fullName User's full name.
+        @param comments User comments.
+        @param password User's password (unused if LDAP auth is enabled)
+        """
+
+        if (self.findUser(username) != None):
+            raise UserExistsException("User %s exists." % username)
+
+        # Create the user record
+        user = ElementTree.SubElement(self._getUsers(), "user")
+
+        # Set up the standard user data
+        userId = ElementTree.SubElement(user, "user-id", xmlns="")
+        userId.text = username
+
+        fullName = ElementTree.SubElement(user, "full-name", xmlns="")
+        fullName.text = fullName
+
+        userComments = ElementTree.SubElement(user, "user-comments", xmlns="")
+        userComments.text = comments
+
+        userPassword = ElementTree.SubElement(user, "password", xmlns="")
+        userPassword.text = password
+
+        # Add the required (blank) contact records
+        # E-mail
+        ElementTree.SubElement(user, "contact", type="email", info="")
+
+        # Pager E-mail
+        ElementTree.SubElement(user, "contact", type="pagerEmail", info="")
+
+        # Jabber Address
+        ElementTree.SubElement(user, "contact", type="xmppAddress", info="")
+
+        # Numeric Pager
+        ElementTree.SubElement(user, "contact", type="numericPage", info="", serviceProvider="")
+
+        # Text Pager
+        ElementTree.SubElement(user, "contact", type="textPage", info="", serviceProvider="")
+
+        return user
 
     def updateUser (self, user, fullName = None, comments = None, email = None,
         pagerEmail = None, xmppAddress = None, numericPager = None, textPager = None):
