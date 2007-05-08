@@ -126,9 +126,3 @@ class GroupsTestCase (unittest.TestCase):
                 found += 1
 
         self.assertEquals(found, 3)
-
-    def test_addMember (self):
-        pass
-
-    def test_deleteMember (self):
-        pass
