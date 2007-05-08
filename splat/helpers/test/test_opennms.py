@@ -48,20 +48,22 @@ from splat.helpers import opennms
 # Useful Constants
 from splat.helpers.test import DATA_DIR
 TEST_USER = "joe"
+TEST_GROUP = "Admin"
 
 USERS_FILE = os.path.join(DATA_DIR, "opennms-users.xml")
 GROUPS_FILE = os.path.join(DATA_DIR, "opennms-groups.xml")
 
 class UsersTestCase (unittest.TestCase):
-    """ Test OpenNMS User/Group Handling """
+    """ Test OpenNMS User Handling """
     
     def setUp (self):
-        self.slapd = slapd.LDAPServer()
-        self.conn = ldapclient.Connection(slapd.SLAPD_URI)
+        #self.slapd = slapd.LDAPServer()
+        #self.conn = ldapclient.Connection(slapd.SLAPD_URI)
         self.users = opennms.Users(USERS_FILE)
 
     def tearDown (self):
-        self.slapd.stop()
+        #self.slapd.stop()
+        pass
 
     def test_findUser (self):
         user = self.users.findUser(TEST_USER)
@@ -69,11 +71,12 @@ class UsersTestCase (unittest.TestCase):
 
     def test_createUser (self):
         self.users.deleteUser(TEST_USER)
-        user = self.users.createUser(TEST_USER)
+        user = self.users.createUser(TEST_USER, comments="hello")
         self.users.updateUser(user, fullName="testname")
 
         user = self.users.findUser(TEST_USER)
         self.assertEquals(user.find("full-name").text, "testname")
+        self.assertEquals(user.find("user-comments").text, "hello")
 
     def test_updateUser (self):
         user = self.users.findUser(TEST_USER)
@@ -88,3 +91,27 @@ class UsersTestCase (unittest.TestCase):
         
         xmpp = self.users._findUserContact(user, "xmppAddress")
         self.assertEquals(xmpp.get("info"), "joe")
+
+class GroupsTestCase (unittest.TestCase):
+    """ Test OpenNMS User Handling """
+
+    def setUp (self):
+        self.groups = opennms.Groups(GROUPS_FILE)
+
+    def test_findGroup (self):
+        group = self.groups.findGroup(TEST_GROUP)
+        self.assertEquals(group.find("user").text, "admin")
+
+    def test_createGroup (self):
+        group = self.groups.createGroup("testgroup", comments="hello")
+        self.assertEquals(group.find("name").text, "testgroup")        
+        self.assertEquals(group.find("comments").text, "hello")
+
+    def test_setMembers (self):
+        pass
+
+    def test_addMember (self):
+        pass
+
+    def test_deleteMember (self):
+        pass

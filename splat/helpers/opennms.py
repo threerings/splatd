@@ -187,3 +187,61 @@ class Users (object):
 
         if (textPager != None):
             self._setContactInfo(user, "textPager", textPager[0], textPager[1])
+
+
+class Groups (object):
+    """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <groupinfo xmlns="http://xmlns.opennms.org/xsd/groups"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="groupinfo">
+        <ns1:header xmlns:ns1="http://xmlns.opennms.org/xsd/types">
+            <rev xmlns="">1.3</rev>
+            <created xmlns="">Monday, May 7, 2007 9:57:05 PM GMT</created>
+            <mstation xmlns="">dhcp-219.internal.opennms.org</mstation>
+        </ns1:header>
+        <groups>
+            <group>
+                <name xmlns="">Admin</name>
+                <comments xmlns="">The administrators</comments>
+                <user xmlns="">admin</user>
+                <user xmlns="">landonf</user>
+            </group>
+        </groups>
+    </groupinfo>
+    """
+    def __init__ (self, path):
+        self.doc = ElementTree.ElementTree(file = path)
+
+    def findGroup (self, groupName):
+        for entry in self.doc.findall("./{%s}groups/*" % (XML_GROUPS_NAMESPACE)):
+            groupId = entry.find("name")
+            if (groupId != None and groupId.text == groupName):
+                return entry
+
+        # Not found
+        return None
+
+    def _getGroups (self):
+        return self.doc.find("./{%s}groups" % (XML_GROUPS_NAMESPACE))
+
+    def createGroup (self, groupName, comments = ""):
+        """
+        Insert and return a new group record.
+        @param groupName Group name.
+        @param comments Group comments.
+        """
+
+        if (self.findGroup(groupName) != None):
+            raise GroupExistsException("Group %s exists." % groupName)
+
+        # Create the group record
+        group = ElementTree.SubElement(self._getGroups(), "group")
+
+        # Set up the standard group data
+        groupId = ElementTree.SubElement(group, "name", xmlns="")
+        groupId.text = groupName
+
+        groupComments = ElementTree.SubElement(group, "comments", xmlns="")
+        groupComments.text = comments
+
+        return group
