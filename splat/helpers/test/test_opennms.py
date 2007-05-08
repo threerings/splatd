@@ -108,7 +108,24 @@ class GroupsTestCase (unittest.TestCase):
         self.assertEquals(group.find("comments").text, "hello")
 
     def test_setMembers (self):
-        pass
+        group = self.groups.findGroup(TEST_GROUP)
+        self.groups.setMembers(group, ('fred', 'joe', 'john'))
+
+        # Make sure all the users are there
+        users = group.findall("./user")
+        self.assertEquals(len(users), 3)
+        found = 0
+        for user in users:
+            if (user.text == "fred"):
+                found += 1
+
+            if (user.text == "joe"):
+                found += 1
+
+            if (user.text == "john"):
+                found += 1
+
+        self.assertEquals(found, 3)
 
     def test_addMember (self):
         pass

@@ -49,6 +49,12 @@ class UserExistsException (splat.plugin.SplatPluginError):
 class NoSuchUserException (splat.plugin.SplatPluginError):
     pass
 
+class GroupExistsException (splat.plugin.SplatPluginError):
+    pass
+
+class NoSuchGroupException (splat.plugin.SplatPluginError):
+    pass
+
 class Users (object):
     def __init__ (self, path):
         self.doc = ElementTree.ElementTree(file = path)
@@ -230,7 +236,6 @@ class Groups (object):
         @param groupName Group name.
         @param comments Group comments.
         """
-
         if (self.findGroup(groupName) != None):
             raise GroupExistsException("Group %s exists." % groupName)
 
@@ -245,3 +250,19 @@ class Groups (object):
         groupComments.text = comments
 
         return group
+
+    def setMembers (self, group, members):
+        """
+        Set a groups' members.
+        @param group Group XML node to update.
+        @param members A list of member names.
+        """
+        # Delete existing user entries
+        entries = group.findall("./user")
+        for entry in entries:
+            group.remove(entry)
+
+        # Add new user entries
+        for member in members:
+            entry = ElementTree.SubElement(group, "user", xmlns="")
+            entry.text = member
