@@ -52,7 +52,7 @@ TEST_USER = "joe"
 USERS_FILE = os.path.join(DATA_DIR, "opennms-users.xml")
 GROUPS_FILE = os.path.join(DATA_DIR, "opennms-groups.xml")
 
-class OpenNMSTestCase (unittest.TestCase):
+class UsersTestCase (unittest.TestCase):
     """ Test OpenNMS User/Group Handling """
     
     def setUp (self):
