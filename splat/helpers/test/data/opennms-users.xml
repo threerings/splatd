@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<userinfo xmlns="http://xmlns.opennms.org/xsd/users"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="userinfo">
+    <ns1:header xmlns:ns1="http://xmlns.opennms.org/xsd/types">
+        <rev xmlns="">.9</rev>
+        <created xmlns="">Monday, May 7, 2007 9:31:05 PM GMT</created>
+        <mstation xmlns="">master.nmanage.com</mstation>
+    </ns1:header>
+    <users>
+        <user>
+            <user-id xmlns="">joe</user-id>
+            <full-name xmlns="">Joe User</full-name>
+            <user-comments xmlns="">Sea Monkey</user-comments>
+            <password xmlns="">secret</password>
+            <contact type="email" info="joeuser@example.org"/>
+            <contact type="pagerEmail" info=""/>
+            <contact type="xmppAddress" info=""/>
+            <contact type="numericPage" info="" serviceProvider=""/>
+            <contact type="textPage" info="" serviceProvider=""/>
+            <duty-schedule xmlns="">Mo0-1200</duty-schedule>
+        </user>
+        <user>
+            <user-id xmlns="">admin</user-id>
+            <full-name xmlns="">Administrator</full-name>
+            <user-comments xmlns="">Default administrator, do not delete</user-comments>
+            <password xmlns="">422B286087E8D494A9C4E9289F80725E</password>
+            <contact type="email" info=""/>
+            <contact type="pagerEmail" info=""/>
+            <contact type="xmppAddress" info=""/>
+            <contact type="numericPage" info="" serviceProvider=""/>
+            <contact type="textPage" info="" serviceProvider=""/>
+        </user>
+    </users>
+</userinfo>
