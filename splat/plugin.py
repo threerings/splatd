@@ -108,6 +108,9 @@ class HelperController(object):
         # TODO LDAP scope support
         entries = ldapConnection.search(self.searchBase, ldap.SCOPE_SUBTREE, self.searchFilter, self.searchAttr)
 
+        # Instantiate a plugin instance
+        plugin = self.helperClass()
+
         # Iterate over the results
         for entry in entries:
             context = None
@@ -145,10 +148,17 @@ class HelperController(object):
                 modified = True
 
             try:
-                self.helperClass().work(context, entry, modified)
+                plugin.work(context, entry, modified)
             except splat.SplatError, e:
                 failure = True
                 logger.error("Helper invocation for '%s' failed with error: %s" % (self.name, e))
+
+        # Let the plugin clean itself up
+        try:
+            plugin.finish()
+        except splat.SplatError, e:
+            failure = True
+            logger.error("Helper finish invocation for '%s' failed with error: %s" % (self.name, e))
 
         # If the entire run was successful, update the timestamp
         if (not failure):
@@ -195,3 +205,11 @@ class Helper(object):
         """
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
+
+    def finish(self):
+        """
+        Called after all data has been passed to the work() method.
+        Override this to implement any necessary post-processing; eg,
+        flushing modifications to disk, etc.
+        """
+        pass
