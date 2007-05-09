@@ -105,6 +105,9 @@ class HelperController(object):
         logger = logging.getLogger(splat.LOG_NAME)
         failure = False
 
+        # Save the start time, used to determine the last successful run
+        startTime = int(time.time())
+
         # TODO LDAP scope support
         entries = ldapConnection.search(self.searchBase, ldap.SCOPE_SUBTREE, self.searchFilter, self.searchAttr)
 
@@ -142,7 +145,7 @@ class HelperController(object):
                     modified = True
                 else:
                     modified = False
-            
+
             # If there is no modifyTimestamp, just say entry has been modified
             else:
                 modified = True
@@ -160,9 +163,12 @@ class HelperController(object):
             failure = True
             logger.error("Helper finish invocation for '%s' failed with error: %s" % (self.name, e))
 
-        # If the entire run was successful, update the timestamp
+        # If the entire run was successful, update the last-run timestamp.
+        #
+        # We use the start time, rather than the current time, as modifications
+        # may occur between when the run starts, and when the run finishes.
         if (not failure):
-            self._lastRun = int(time.time())
+            self._lastRun = startTime
 
 class Helper(object):
     """
