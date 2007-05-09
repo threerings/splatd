@@ -73,6 +73,8 @@ class MockHelper(plugin.Helper):
         assert(ldapEntry.attributes.has_key('modifyTimestamp'))
         # Independently verify the modify time stamp
         entryMod = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
+        print entryMod
+        print self.lastRun
         if (entryMod >= self.lastRun):
             assert(modified)
         else:
