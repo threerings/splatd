@@ -49,13 +49,20 @@ from splat.test import DATA_DIR
 
 # Mock Helper
 class MockHelper(plugin.Helper):
+    # Last instance work success flag and context. This is obviously
+    # not safe outside of testing
+    success = None
+    context = None
+
     def __init__(self):
-        self.success = False
+        MockHelper.success = False
         self.lastRun = 0
 
+    @classmethod
     def attributes(self):
         return ('dn',)
 
+    @classmethod
     def parseOptions(self, options):
         assert(options['test'] == 'value')
         return options
@@ -71,16 +78,10 @@ class MockHelper(plugin.Helper):
         else:
             assert(not modified)
 
-        self.context = context
-        self.success = True
+        MockHelper.context = context
+        MockHelper.success = True
 
         self.lastRun = int(time.time())
-
-    def modify(self, ldapEntry, modifyList):
-        pass
-
-    def convert(self):
-        pass
 
 # Test Cases
 class HelperWithControllerTestCase(unittest.TestCase):
@@ -92,6 +93,9 @@ class HelperWithControllerTestCase(unittest.TestCase):
 
         options = {'test':'value'}
         self.hc = plugin.HelperController('test', 'splat.test.test_plugin', 5, 'dc=example,dc=com', '(uid=john)', False, options)
+
+        MockHelper.context = None
+        MockHelper.success = False
 
     def tearDown(self):
         self.slapd.stop()
@@ -121,13 +125,13 @@ class HelperWithControllerTestCase(unittest.TestCase):
         # Ensure that the worker is not called if requireGroup is True
         # and no groups have been added
         self.hc.work(self.conn)
-        self.assertEquals(self.hc.helper.success, False)
+        self.assertEquals(MockHelper.success, False)
 
     def test_requireGroupDisabled(self):
         # Ensure that the worker is called if requireGroup is False (default)
         # and no groups have been added
         self.hc.work(self.conn)
-        self.assertEquals(self.hc.helper.success, True)
+        self.assertEquals(MockHelper.success, True)
 
     def test_requireGroupNoMatch(self):
         self.hc.requireGroup = True
@@ -136,7 +140,7 @@ class HelperWithControllerTestCase(unittest.TestCase):
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=administrators))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'administrators'})
         self.hc.work(self.conn)
-        self.assertEquals(self.hc.helper.success, False)
+        self.assertEquals(MockHelper.success, False)
 
     def test_addGroup(self):
         self.hc.requireGroup = True
@@ -145,12 +149,12 @@ class HelperWithControllerTestCase(unittest.TestCase):
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'developers'})
         self.hc.work(self.conn)
-        self.assertEquals(self.hc.helper.success, True)
-        self.assertEquals(self.hc.helper.context['group'], 'developers')
+        self.assertEquals(MockHelper.success, True)
+        self.assertEquals(MockHelper.context['group'], 'developers')
 
         # Add an additional group. Ensure that only the first group matches
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')
         self.hc.addGroup(filter, {'test':'value', 'group':'developers2'})
         self.hc.work(self.conn)
-        self.assertEquals(self.hc.helper.success, True)
-        self.assertEquals(self.hc.helper.context['group'], 'developers')
+        self.assertEquals(MockHelper.success, True)
+        self.assertEquals(MockHelper.context['group'], 'developers')

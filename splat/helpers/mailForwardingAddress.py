@@ -60,9 +60,11 @@ class WriterContext(object):
 
 class Writer(plugin.Helper):
     # Required Attributes
+    @classmethod
     def attributes(self): 
         return ('mailForwardingAddress',) + homeutils.requiredAttributes()
-    
+
+    @classmethod
     def parseOptions(self, options):
         context = WriterContext()
 

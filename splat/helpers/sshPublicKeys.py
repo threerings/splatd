@@ -58,9 +58,11 @@ class WriterContext(object):
 
 class Writer(plugin.Helper):
     # Required Attributes
+    @classmethod
     def attributes(self): 
         return ('sshPublicKey',) + homeutils.requiredAttributes()
 
+    @classmethod
     def parseOptions(self, options):
         context = WriterContext()
 

@@ -94,14 +94,14 @@ class PurgeUserTestCase(unittest.TestCase):
         options = self._getDefaultOptions()
         options['foo'] = 'bar'
         # First test if the parser complains about invalid options.
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
         # Then make sure it works when the options are valid.
         del options['foo']
-        assert self.hc.helper.parseOptions(options)
+        assert self.hc.helperClass.parseOptions(options)
 
     def test_default_options(self):
         """ Test Default Options """
-        context = self.hc.helper.parseOptions({})
+        context = self.hc.helperClass.parseOptions({})
         self.assertEqual(True, context.archiveHomeDir)
         self.assertEqual(True, context.purgeHomeDir)
         self.assertEqual(True, context.purgeHomeArchive)
@@ -110,13 +110,13 @@ class PurgeUserTestCase(unittest.TestCase):
         
     def test_bad_option_values(self):
         """ Test Validation of Bad Option Values """
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivedest':'/asdf'})
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'purgehomedir':'42'})
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, {'archivehomedir':'false', 'purgehomearchive':'true'})
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, {'archivedest':'/asdf'})
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, {'purgehomedir':'42'})
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, {'archivehomedir':'false', 'purgehomearchive':'true'})
 
     def test_context(self):
         """ Test Context Consistency With Options """
-        context = self.hc.helper.parseOptions(self._getDefaultOptions())
+        context = self.hc.helperClass.parseOptions(self._getDefaultOptions())
         self.assertEqual(False, context.archiveHomeDir)
         self.assertEqual(False, context.purgeHomeDir)
         self.assertEqual(False, context.purgeHomeArchive)

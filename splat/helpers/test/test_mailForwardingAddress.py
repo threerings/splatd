@@ -70,41 +70,41 @@ class MailForwardingAddresstestCase(unittest.TestCase):
 
     def test_valid_options(self):
         """ Test Parsing of Valid Options """
-        assert self.hc.helper.parseOptions(self.options)
+        assert self.hc.helperClass.parseOptions(self.options)
 
     def test_invalid_option(self):
         """ Test Invalid Option """
         options = self.options
         options['foo'] = 'bar'
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
 
     def test_option_home(self):
         """ Test Home Directory Validation """
         options = { 
             'home':'/fred'
         }
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.work, self.context, self.entries[0], self.modified)
+        self.context = self.hc.helperClass.parseOptions(options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass().work, self.context, self.entries[0], self.modified)
 
     def test_option_minuid(self):
         """ Test UID Validation """
         options = { 
             'minuid':'9000000'
         }
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.work, self.context, self.entries[0], self.modified)
+        self.context = self.hc.helperClass.parseOptions(options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass().work, self.context, self.entries[0], self.modified)
 
     def test_option_mingid(self):
         """ Test GID Validation """
         options = { 
             'mingid':'9000000'
         }
-        self.context = self.hc.helper.parseOptions(options)
-        self.assertRaises(splat.SplatError, self.hc.helper.work, self.context, self.entries[0], self.modified)
+        self.context = self.hc.helperClass.parseOptions(options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass().work, self.context, self.entries[0], self.modified)
 
     def test_context(self):
         """ Test Context Consistency With Options """
-        context = self.hc.helper.parseOptions(self.options)
+        context = self.hc.helperClass.parseOptions(self.options)
         self.assertEquals(context.makehome, True)
 
     def test_group_context(self):
@@ -119,7 +119,7 @@ class MailForwardingAddresstestCase(unittest.TestCase):
         options = self.options
         # Run parseOptions here to make sure the options dictionary is not 
         # being modified by it.
-        self.hc.helper.parseOptions(options)
+        self.hc.helperClass.parseOptions(options)
         # Now update with a custom option for this group.
         options['minuid'] = '10'
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')

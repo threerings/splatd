@@ -48,9 +48,11 @@ class WriterContext(object):
         self.postcreate = None
 
 class Writer(plugin.Helper):
+    @classmethod
     def attributes(self):
         return homeutils.requiredAttributes()
-    
+
+    @classmethod
     def parseOptions(self, options):
         context = WriterContext()
         

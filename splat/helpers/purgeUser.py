@@ -60,9 +60,11 @@ class WriterContext(object):
         self.purgeArchiveWait = 14
 
 class Writer(plugin.Helper):
+    @classmethod
     def attributes(self): 
         return ('pendingPurge', 'uid') + homeutils.requiredAttributes()
 
+    @classmethod
     def parseOptions(self, options):
         context = WriterContext()
                 

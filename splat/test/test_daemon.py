@@ -54,14 +54,23 @@ class FakeException(Exception):
 
 # Mock Helper
 class MockHelper(plugin.Helper):
+    # Last instance failure. This is obviously
+    # not safe outside of testing
+    failure = None
+
     def __init__(self):
         super(plugin.Helper, self).__init__()
         self.done = False
-        self.failure = None
+        MockHelper.failure = None
         self.exception = False
 
+    @classmethod
     def attributes(self):
         return ('uid',)
+
+    @classmethod
+    def parseOptions(self, options):
+        return None
 
     def work(self, context, ldapEntry, modified):
         # Blow a gasket if an exception has been provided
@@ -72,17 +81,13 @@ class MockHelper(plugin.Helper):
 
         uid = ldapEntry.attributes['uid'][0]
         if(uid != 'john'):
-            self.failure = "Incorrect LDAP attribute returned (Wanted: 'john', Got: '%s')" % uid
+            MockHelper.failure = "Incorrect LDAP attribute returned (Wanted: 'john', Got: '%s')" % uid
         self.done = True
 
-    def parseOptions(self, options):
-        return None
-
-    def modify(self, ldapEntry, modifyList):
-        pass
-
-    def convert(self):
-        pass
+class ErrorHelper(MockHelper):
+    def __init__(self):
+        super(MockHelper, self).__init__()
+        self.exception = True
 
 # Test Cases
 class ContextTestCase(unittest.TestCase):
@@ -128,23 +133,11 @@ class ContextTestCase(unittest.TestCase):
     def test_daemonContextErrorHandling(self):
         self.ctx.addHelper(self.hc)
         # Force a run error
-        self.hc.helper.exception = True
+        self.hc.helperClass = ErrorHelper
 
         d = self.ctx.start()
         d.addCallback(self._cbDaemonError)
         d.addErrback(self._ebDaemonError)
-
-        # Add a timeout
-        timeout = reactor.callLater(5, self.failed, "timeout")
-
-        # Wait for the work method to be called, or for a timeout to occur
-        while (not self.hc.helper.done or self.failure):
-            reactor.iterate(0.1)
-
-        timeout.cancel()
-
-        if (self.failure):
-            self.fail(self.failure)
 
         return d
 
@@ -153,24 +146,12 @@ class ContextTestCase(unittest.TestCase):
         d = self.ctx.start()
         d.addCallback(self._cbDaemonResult)
 
-        # Add a timeout
-        timeout = reactor.callLater(5, self.failed, "timeout")
-
-        # Wait for the work method to be called, or for a timeout to occur
-        while (not self.hc.helper.done or self.failure):
-            reactor.iterate(0.1)
-
-        timeout.cancel()
-
         # Kill the task
         self.ctx.removeHelper('test')
         self.ctx.stop()
 
-        if (self.failure):
-            self.fail(self.failure)
-
-        if (self.hc.helper.failure):
-            self.fail(self.hc.helper.failure)
+        if (MockHelper.failure):
+            self.fail(MockHelper.failure)
 
         return d
 

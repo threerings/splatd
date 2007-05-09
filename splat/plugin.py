@@ -56,7 +56,7 @@ class HelperController(object):
         @param requireGroup: Require any returned entries to be a member of a group supplied by addGroup().
         @param helperOptions: Dictionary of helper-specific options
         """
-        self.helper = None
+        self.helperClass = None
         self.name = name
         self.interval = interval
         self.searchFilter = searchFilter
@@ -74,16 +74,15 @@ class HelperController(object):
             if (isinstance(obj, (type, types.ClassType)) and issubclass(obj, Helper)):
                 # Skip abstract class
                 if (not obj == Helper):
-                    self.helper = obj()
-                    self._helperClass = obj
+                    self.helperClass = obj
                     break
 
-        if (self.helper == None):
+        if (self.helperClass == None):
             raise SplatPluginError, "Helper module %s not found" % module
 
-        self.searchAttr = self.helper.attributes() + ('modifyTimestamp',)
+        self.searchAttr = self.helperClass.attributes() + ('modifyTimestamp',)
 
-        self.defaultContext = self.helper.parseOptions(helperOptions)
+        self.defaultContext = self.helperClass.parseOptions(helperOptions)
 
     def addGroup(self, groupFilter, helperOptions = None):
         """
@@ -92,7 +91,7 @@ class HelperController(object):
         @param helperOptions; Group-specific helper options. Optional.
         """
         if (helperOptions):
-            self.groupsCtx[groupFilter] = self.helper.parseOptions(helperOptions)
+            self.groupsCtx[groupFilter] = self.helperClass.parseOptions(helperOptions)
         else:
             self.groupsCtx[groupFilter] = self.defaultContext 
 
@@ -146,7 +145,7 @@ class HelperController(object):
                 modified = True
 
             try:
-                self.helper.work(context, entry, modified)
+                self.helperClass().work(context, entry, modified)
             except splat.SplatError, e:
                 failure = True
                 logger.error("Helper invocation for '%s' failed with error: %s" % (self.name, e))
@@ -159,6 +158,7 @@ class Helper(object):
     """
     Abstract class for Splat helper plugins
     """
+    @classmethod
     def attributes(self):
         """
         Return required LDAP attributes.
@@ -166,7 +166,7 @@ class Helper(object):
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
     
-    
+    @classmethod
     def _parseBooleanOption(self, option):
         """
         Case insensitively convert a string option 'true' or 'false' to 
@@ -180,6 +180,7 @@ class Helper(object):
         else:
             raise SplatPluginError, "Invalid value for option %s specified; must be set to true or false." % option
 
+    @classmethod
     def parseOptions(self, options):
         """
         Parse the supplied options dict and return
@@ -194,10 +195,3 @@ class Helper(object):
         """
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
-
-    def modify(self, ldapEntry, modifyDict):
-        raise NotImplementedError, \
-                "This method is not implemented in this abstract class"
-
-    def convert(self):
-        pass

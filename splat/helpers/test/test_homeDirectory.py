@@ -87,35 +87,35 @@ class HomeDirtestCase(unittest.TestCase):
     def test_valid_options(self):
         """ Test Parsing of Valid Options """
         options = self.options
-        assert self.hc.helper.parseOptions(options)
+        assert self.hc.helperClass.parseOptions(options)
         # Also make sure parser works when skeldir has not been defined
         del options['skeldir']
-        assert self.hc.helper.parseOptions(options)
+        assert self.hc.helperClass.parseOptions(options)
     
     def test_invalid_options(self):
         """ Test Invalid Options """
         # foo is not a valid option
         options = self.options
         options['foo'] = 'bar' 
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
 
     def test_option_parse_home(self):
         """ Test Home Option Parser """
         # Relative paths shouldn't be allowed for home
         options = self.options
         options['home'] = 'home'
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
 
     def test_option_parse_skeldir(self):
         """ Test Skel Directory Option Parser """
         # Paths that don't exist should generate an exception
         options = self.options
         options['skeldir'] = '/asdf/jklh/qwer'
-        self.assertRaises(splat.SplatError, self.hc.helper.parseOptions, options)
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
 
     def test_context(self):
         """ Test Context Consistency With Options """
-        context = self.hc.helper.parseOptions(self.options)
+        context = self.hc.helperClass.parseOptions(self.options)
         self.assertEquals(context.home, '/home')
         self.assertEquals(context.minuid, 0)
         self.assertEquals(context.mingid, 0)
@@ -133,7 +133,7 @@ class HomeDirtestCase(unittest.TestCase):
         options = self.options
         # Run parseOptions here to make sure the options dictionary is not 
         # being modified by it.
-        self.hc.helper.parseOptions(options)
+        self.hc.helperClass.parseOptions(options)
         # Now update with a custom option for this group.
         options['minuid'] = '10'
         filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=developers))', 'uniqueMember')

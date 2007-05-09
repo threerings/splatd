@@ -591,8 +591,10 @@ objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
         <title>Skeleton of Splat Helper Module</title>
         <programlisting>
 class MyHelper(splat.plugin.Helper):
+    @classmethod
     def attributes(self):
         ...
+    @classmethod
     def parseOptions(self, options):
         ...
     def work(self, context, ldapEntry, modified):
