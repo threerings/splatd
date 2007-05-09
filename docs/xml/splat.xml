@@ -112,7 +112,7 @@
         <example>
           <title>Example splat.conf</title>
           <programlisting>
-<xi:include href="../../splat.conf" parse="text" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+            <xi:include href="../../splat.conf" parse="text" xmlns:xi="http://www.w3.org/2001/XInclude"/>
           </programlisting>
          </example>
       </sect2>
@@ -448,11 +448,13 @@ objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
       <sect2>
         <title>Home Directory Purging Service Options</title>
         
-        The Home Directory Purging module supports the following options. The 
-        <computeroutput>home</computeroutput>, <computeroutput>minuid
-        </computeroutput>, and <computeroutput>mingid</computeroutput> options 
-        are not required to be set, but are useful for sanity checking.
-        
+        <para>
+          The Home Directory Purging module supports the following options. The 
+          <computeroutput>home</computeroutput>, <computeroutput>minuid
+          </computeroutput>, and <computeroutput>mingid</computeroutput> options 
+          are not required to be set, but are useful for sanity checking.
+        </para>
+
         <variablelist>
           <varlistentry>
             <term>home</term>
