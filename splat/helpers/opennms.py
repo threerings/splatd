@@ -30,8 +30,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import splat.plugin
+import os, tempfile
 
+from splat import plugin
+
+# Import cElementTree
 try:
     # Python 2.5 cElementTree
     from xml.etree import cElementTree as ElementTree
@@ -39,21 +42,223 @@ except ImportError:
     # Stand-alone pre-2.5 cElementTree
     import cElementTree as ElementTree
 
+from pysqlite2 import dbapi2 as sqlite
+
 # XML Namespaces
 XML_USERS_NAMESPACE = "http://xmlns.opennms.org/xsd/users"
 XML_GROUPS_NAMESPACE = "http://xmlns.opennms.org/xsd/groups"
 
-class UserExistsException (splat.plugin.SplatPluginError):
+# OpenNMS User Record Fields
+OU_USERNAME     = 'userName'
+OU_FULLNAME     = 'fullName'
+OU_COMMENTS     = 'comments'
+OU_EMAIL        = 'email'
+OU_PAGER_EMAIL  = 'pagerEmail'
+OU_XMPP_ADDRESS = 'xmppAddress'
+OU_NUMERIC_PAGER            = 'numericPager'
+OU_NUMERIC_PAGER_SERVICE    = 'numericPagerService'
+OU_TEXT_PAGER           = 'textPager'
+OU_TEXT_PAGER_SERVICE   = 'textPagerService'
+OU_LDAP_DN      = 'ldapDN'
+
+class UserExistsException (plugin.SplatPluginError):
     pass
 
-class NoSuchUserException (splat.plugin.SplatPluginError):
+class NoSuchUserException (plugin.SplatPluginError):
     pass
 
-class GroupExistsException (splat.plugin.SplatPluginError):
+class GroupExistsException (plugin.SplatPluginError):
     pass
 
-class NoSuchGroupException (splat.plugin.SplatPluginError):
+class NoSuchGroupException (plugin.SplatPluginError):
     pass
+
+class WriterContext(object):
+    def __init__(self):
+        # A map of (XML/database) fields to LDAP attributes
+        # The name choices are no accident -- they're meant
+        # to match between the DB and the XML.
+        self.attrmap = {
+            OU_USERNAME      : None,
+            OU_FULLNAME      : None,
+            OU_COMMENTS      : None,
+            OU_EMAIL         : None,
+            OU_PAGER_EMAIL    : None,
+            OU_XMPP_ADDRESS   : None,
+            OU_NUMERIC_PAGER  : None,
+            OU_NUMERIC_PAGER_SERVICE    : None,
+            OU_TEXT_PAGER     : None,
+            OU_TEXT_PAGER_SERVICE  : None
+        }
+
+class Writer(plugin.Helper):
+    @classmethod
+    def attributes(self): 
+        # We want all attributes
+        return None
+
+    @classmethod
+    def parseOptions(self, options):
+        context = WriterContext()
+
+        for key in options.iterkeys():
+            # Do some magic to check for 'attribute keys' without enumerating
+            # them all over again.
+            if (key.endswith("Attribute")):
+                attrKey = key[:len(key) - len("Attribute")]
+                if (context.attrmap.has_key(attrKey)):
+                    context.attrmap[attrKey] = options[key]
+                    continue
+
+            raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
+            
+        return context
+
+    def _initdb (self, dbfile):
+        """
+        Create our temporary user record database
+        """
+        # Connect to the database
+        self.db = sqlite.connect(dbfile)
+
+        # Initialize the users table
+        self.db.execute(
+            """
+            CREATE TABLE Users (
+                userName        TEXT NOT NULL PRIMARY KEY,
+                ldapDN          TEXT NOT NULL,
+                fullName        TEXT DEFAULT NULL,
+                comments        TEXT DEFAULT NULL,
+                email           TEXT DEFAULT NULL,
+                pagerEmail      TEXT DEFAULT NULL,
+                numericPager    TEXT DEFAULT NULL,
+                numericPagerService TEXT DEFAULT NULL,
+                textPager       TEXT DEFAULT NULL,
+                textPagerService    TEXT DEFAULT NULL
+            );
+            """
+        )
+
+        # Now for the group table
+        self.db.execute(
+            """
+            CREATE TABLE Groups (
+                groupName   TEXT NOT NULL PRIMARY KEY,
+                comments    TEXT DEFAULT NULL
+            );
+            """
+        )
+
+        # ... finally, the group member table
+        self.db.execute(
+            """
+            CREATE TABLE GroupMembers (
+                groupName   TEXT NOT NULL,
+                userName    TEXT NOT NULL,
+                PRIMARY KEY(groupName, username),
+                FOREIGN KEY(groupName) REFERENCES Groups(groupName)
+                FOREIGN KEY(userName) REFERENCES Users(userName)
+            );
+            """
+        )
+
+        # Drop the file out from under ourselves
+        os.unlink(dbfile)
+
+        # Commit our changes
+        self.db.commit()
+
+    def __init__ (self):
+        # If a fatal error occurs, set this to True, and we won't attempt to
+        # overwrite any files in finish()
+        self.fatalError = False
+
+        # Create a temporary database in which to store user records
+        dbfile = None
+        try:
+            (handle, dbfile) = tempfile.mkstemp()
+            self._initdb(dbfile)
+        except Exception, e:
+            if (dbfile != None and os.path.exists(dbfile)):
+                os.unlink(dbfile)
+            raise plugin.SplatPluginError("Initialization failure: %s" % e)
+
+    def _insertDict(self, table, dataDict):
+        """
+        Safely (ith SQL escaping) insert a dict into a table
+        """ 
+        def dictValuePad(key):
+            return '?'
+        
+        cols = []
+        vals = []
+
+        for key in dataDict.iterkeys():
+            cols.append(key)
+            vals.append(dataDict[key])
+
+        sql = 'INSERT INTO ' + table
+        sql += ' ('
+        sql += ', '.join(cols)
+        sql += ') VALUES ('
+        sql += ', '.join(map(dictValuePad, vals))
+        sql += ');'
+
+        self.db.execute(sql, vals)
+
+    def _createUserAttributeDict (self, ldapEntry, attrMap):
+        """
+        Add to dict from attribute dictionary
+        """
+        result = {}
+
+        # Add required elements
+        result[OU_USERNAME] = ldapEntry.attributes[attrMap[OU_USERNAME]][0]
+        result[OU_LDAP_DN] = ldapEntry.dn
+
+        # Add optional elements
+        for key in attrMap.iterkeys():
+            ldapKey = attrMap[key]
+            if (ldapEntry.attributes.has_key(ldapKey)):
+                result[key] = ldapEntry.attributes[ldapKey][0]
+
+        return result
+
+    def work (self, context, ldapEntry, modified):
+        # Validate the available attributes
+        attributes = ldapEntry.attributes
+        if (not attributes.has_key(context.attrmap[OU_USERNAME])):
+            raise plugin.SplatPluginError, "Required attribute %s not found for dn %s." % (context.attrmap[OU_USERNAME], ldapEntry.dn)
+
+        # Add required fields to the database
+        #insertData = {
+        #    "userName" : attrs[ctx.usernameAttr][0],
+        #    "ldapDn" : ldapEntry.dn
+        #}
+
+        """
+        CREATE TABLE Users (
+            userName        TEXT NOT NULL PRIMARY KEY,
+            ldapDN          TEXT NOT NULL,
+            fullName        TEXT DEFAULT NULL,
+            comments        TEXT DEFAULT NULL,
+            email           TEXT DEFAULT NULL,
+            pagerEmail      TEXT DEFAULT NULL,
+            numericPager    TEXT DEFAULT NULL,
+            numericPagerService TEXT DEFAULT NULL,
+            textPager       TEXT DEFAULT NULL,
+            textPagerService    TEXT DEFAULT NULL
+        );
+        """
+
+        insertData = self._createUserAttributeDict(ldapEntry, context.attrmap)
+        
+        try:
+            self._insertDict("Users", insertData)
+            self.db.commit()
+        except Exception, e:
+            self.fatalError = True
+            raise plugin.SplatPluginError, "Failed to commit user record to database for dn %s: %s" % (ldapEntry.dn, e)
 
 class Users (object):
     def __init__ (self, path):

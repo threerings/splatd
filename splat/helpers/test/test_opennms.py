@@ -53,6 +53,48 @@ TEST_GROUP = "Admin"
 USERS_FILE = os.path.join(DATA_DIR, "opennms-users.xml")
 GROUPS_FILE = os.path.join(DATA_DIR, "opennms-groups.xml")
 
+# Test Cases
+class PluginTestCase(unittest.TestCase):
+    """ Test Splat SSH Helper """
+    def setUp(self):
+        self.options = { 
+            'userNameAttribute':'uid',
+            'fullNameAttribute' : 'cn',
+            'emailAttribute' : 'mail'
+        }
+        self.slapd = slapd.LDAPServer()
+        self.conn = ldapclient.Connection(slapd.SLAPD_URI)
+        self.hc = plugin.HelperController('test', 'splat.helpers.opennms', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self.options)
+        self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
+        # We test that checking the modification timestamp on entries works in
+        # plugin.py's test class, so just assume the entry is modified here.
+        self.modified = True
+
+    def tearDown(self):
+        self.slapd.stop()
+
+    def test_valid_options(self):
+        """ Test Parsing of Valid Options """
+        assert self.hc.helperClass.parseOptions(self.options)
+
+    def test_invalid_option(self):
+        """ Test Invalid Option """
+        options = self.options
+        options['foo'] = 'bar'
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
+        
+    def test_context(self):
+        """ Test Context Consistency With Options """
+        context = self.hc.helperClass.parseOptions(self.options)
+        self.assertEquals(context.attrmap[opennms.OU_USERNAME], 'uid')
+        self.assertEquals(context.attrmap[opennms.OU_FULLNAME], 'cn')
+
+    def test_work(self):
+        context = self.hc.helperClass.parseOptions(self.options)
+        plugin = self.hc.helperClass()
+        for entry in self.entries:
+            plugin.work(context, entry, True)
+
 class UsersTestCase (unittest.TestCase):
     """ Test OpenNMS User Handling """
     
