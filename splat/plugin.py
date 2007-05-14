@@ -80,7 +80,15 @@ class HelperController(object):
         if (self.helperClass == None):
             raise SplatPluginError, "Helper module %s not found" % module
 
-        self.searchAttr = self.helperClass.attributes() + ('modifyTimestamp',)
+        # Get the list of required attributes
+
+        self.searchAttr = self.helperClass.attributes()
+        # If None, request all user attributes (LDAP_ALL_USER_ATTRIBUTES)
+        if (self.searchAttr == None):
+            self.searchAttr = ('*', )
+
+        # Always retrieve the modifyTimestamp operational attribute, too.
+        self.searchAttr = self.searchAttr + ('modifyTimestamp',)
 
         self.defaultContext = self.helperClass.parseOptions(helperOptions)
 
@@ -177,7 +185,8 @@ class Helper(object):
     @classmethod
     def attributes(self):
         """
-        Return required LDAP attributes.
+        Return required LDAP attributes. Return None to have
+        all available attributes returned.
         """
         raise NotImplementedError, \
                 "This method is not implemented in this abstract class"
