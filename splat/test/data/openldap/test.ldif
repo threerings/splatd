@@ -83,7 +83,7 @@ givenName: John
 sn: Doe 
 cn: John Doe
 mail: john@example.com
-mail: johnalias@example.com
+mailAlternateAddress: johnalias@example.com
 description: John the Example Person
 loginShell: /bin/tcsh
 uidNumber: 10001
@@ -106,7 +106,7 @@ givenName: Sally
 sn: Doe
 cn: Sally Doe
 mail: sally@example.com
-mail: sallyalias@example.com
+mailAlternateAddress: sallyalias@example.com
 description: Sally the Example Person
 loginShell: /bin/tcsh
 uidNumber: 10002
