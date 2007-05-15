@@ -30,11 +30,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os, tempfile
+import os, tempfile, logging
 
+import splat
 from splat import plugin
 
-# Import cElementTree
+from pysqlite2 import dbapi2 as sqlite
+
 try:
     # Python 2.5 cElementTree
     from xml.etree import cElementTree as ElementTree
@@ -42,7 +44,8 @@ except ImportError:
     # Stand-alone pre-2.5 cElementTree
     import cElementTree as ElementTree
 
-from pysqlite2 import dbapi2 as sqlite
+# Logger
+logger = logging.getLogger(splat.LOG_NAME)
 
 # XML Namespaces
 XML_USERS_NAMESPACE = "http://xmlns.opennms.org/xsd/users"
@@ -72,6 +75,17 @@ class GroupExistsException (plugin.SplatPluginError):
 
 class NoSuchGroupException (plugin.SplatPluginError):
     pass
+
+
+def _sqlite_dict_factory(cursor, row):
+    """
+    Returns sqlite rows as dictionaries
+    """
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 
 class WriterContext(object):
     def __init__(self):
@@ -110,9 +124,32 @@ class Writer(plugin.Helper):
                     context.attrmap[attrKey] = options[key]
                     continue
 
+            if (key == "usersFile"):
+                context.usersFile = options[key]
+                continue
+
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
             
         return context
+
+
+    def __init__ (self):
+        # If a fatal error occurs, set this to True, and we won't attempt to
+        # overwrite any files in finish()
+        self.fatalError = False
+
+        # Path to the user 'database' xml file
+        self.usersFile = None
+
+        # Create a temporary database in which to store user records
+        dbfile = None
+        try:
+            (handle, dbfile) = tempfile.mkstemp()
+            self._initdb(dbfile)
+        except Exception, e:
+            if (dbfile != None and os.path.exists(dbfile)):
+                os.unlink(dbfile)
+            raise plugin.SplatPluginError("Initialization failure: %s" % e)
 
     def _initdb (self, dbfile):
         """
@@ -120,6 +157,7 @@ class Writer(plugin.Helper):
         """
         # Connect to the database
         self.db = sqlite.connect(dbfile)
+        self.db.row_factory = _sqlite_dict_factory
 
         # Initialize the users table
         self.db.execute(
@@ -168,24 +206,9 @@ class Writer(plugin.Helper):
         # Commit our changes
         self.db.commit()
 
-    def __init__ (self):
-        # If a fatal error occurs, set this to True, and we won't attempt to
-        # overwrite any files in finish()
-        self.fatalError = False
-
-        # Create a temporary database in which to store user records
-        dbfile = None
-        try:
-            (handle, dbfile) = tempfile.mkstemp()
-            self._initdb(dbfile)
-        except Exception, e:
-            if (dbfile != None and os.path.exists(dbfile)):
-                os.unlink(dbfile)
-            raise plugin.SplatPluginError("Initialization failure: %s" % e)
-
     def _insertDict(self, table, dataDict):
         """
-        Safely (ith SQL escaping) insert a dict into a table
+        Safely insert a dict into a table (with SQL escaping)
         """ 
         def dictValuePad(key):
             return '?'
@@ -225,16 +248,20 @@ class Writer(plugin.Helper):
         return result
 
     def work (self, context, ldapEntry, modified):
+        # We need to pull the location of the user file out of the first configuration
+        # context we get.
+        if (self.usersFile == None):
+            self.usersFile = context.usersFile
+        else:
+            # Is the setting still the same? It's not overridable.
+            if (self.usersFile != context.usersFile):
+                self.fatalError = True
+                raise plugin.SplatPluginError, "The \"usersfile\" setting may not be overridden in a group configuration"
+
         # Validate the available attributes
         attributes = ldapEntry.attributes
         if (not attributes.has_key(context.attrmap[OU_USERNAME])):
             raise plugin.SplatPluginError, "Required attribute %s not found for dn %s." % (context.attrmap[OU_USERNAME], ldapEntry.dn)
-
-        # Add required fields to the database
-        #insertData = {
-        #    "userName" : attrs[ctx.usernameAttr][0],
-        #    "ldapDn" : ldapEntry.dn
-        #}
 
         """
         CREATE TABLE Users (
@@ -260,12 +287,49 @@ class Writer(plugin.Helper):
             self.fatalError = True
             raise plugin.SplatPluginError, "Failed to commit user record to database for dn %s: %s" % (ldapEntry.dn, e)
 
+
+    def finish (self):
+        # If something terrible happened, don't overwrite the user XML file
+        if (self.fatalError):
+            return
+
+        # If no work was done, there won't be a users file
+        if (self.usersFile == None):
+            return
+
+        # Open up the OpenNMS user database.
+        userdb = Users(self.usersFile)
+
+        # Update/Insert Pass: Iterate over each user in the LDAP result set.
+        # If they currently exist in the OpenNMS db, update their record.
+        # If they do not exist in the OpenNMS db, add their record.
+        cur = self.db.cursor()
+        cur.execute("SELECT * from Users")
+        for ldapRecord in cur:
+            user = userdb.findUser(ldapRecord[OU_USERNAME])
+            if (user == None):
+                user = userdb.createUser(ldapRecord[OU_USERNAME])
+
+            # Clean up the result for use as arguments
+            del ldapRecord[OU_USERNAME]
+            del ldapRecord[OU_LDAP_DN]
+            userdb.updateUser(user, **ldapRecord)
+
+        #for user in userdb.getUsers():
+        #    userName = user.find("user-id")
+        #    if (userName == None):
+        #        logger.error("Corrupt OpenNMS user record, missing user-id: %s" % ElementTree.tostring(user))
+
+        #    cur = self.db.cursor()
+        #    cur.execute("SELECT * FROM Users WHERE userName=?;", (userName.text,))
+        #    print cur.fetchone()
+
 class Users (object):
     def __init__ (self, path):
         self.doc = ElementTree.ElementTree(file = path)
 
     def findUser (self, username):
-        for entry in self.doc.findall("./{%s}users/*" % (XML_USERS_NAMESPACE)):
+        for entry in self.getUsers():
             userId = entry.find("user-id")
             if (userId != None and userId.text == username):
                 return entry
@@ -273,7 +337,8 @@ class Users (object):
         # Not found
         return None
 
-    def _getUsers (self):
+    def _getUsersElement (self):
+        # Retrieve the <users> element
         return self.doc.find("./{%s}users" % (XML_USERS_NAMESPACE))
 
     @classmethod
@@ -298,12 +363,18 @@ class Users (object):
 
         return None
 
+    def getUsers (self):
+        """
+        Returns an iterator over all user elements
+        """
+        return self.doc.findall("./{%s}users/*" % (XML_USERS_NAMESPACE))
+
     def deleteUser (self, username):
         user = self.findUser(username)
         if (self.findUser == None):
             raise NoSuchUserException("Could not find user %s." % username)
 
-        users = self._getUsers()
+        users = self._getUsersElement()
         users.remove(user)
 
     def createUser (self, username, fullName = "", comments = "", password = "XXX"):
@@ -319,41 +390,42 @@ class Users (object):
             raise UserExistsException("User %s exists." % username)
 
         # Create the user record
-        user = ElementTree.SubElement(self._getUsers(), "user")
+        user = ElementTree.SubElement(self._getUsersElement(), "{%s}user" % XML_USERS_NAMESPACE)
 
         # Set up the standard user data
-        userId = ElementTree.SubElement(user, "user-id", xmlns="")
+        userId = ElementTree.SubElement(user, "user-id")
         userId.text = username
 
-        fullName = ElementTree.SubElement(user, "full-name", xmlns="")
+        fullName = ElementTree.SubElement(user, "full-name")
         fullName.text = fullName
 
-        userComments = ElementTree.SubElement(user, "user-comments", xmlns="")
+        userComments = ElementTree.SubElement(user, "user-comments")
         userComments.text = comments
 
-        userPassword = ElementTree.SubElement(user, "password", xmlns="")
+        userPassword = ElementTree.SubElement(user, "password")
         userPassword.text = password
 
         # Add the required (blank) contact records
         # E-mail
-        ElementTree.SubElement(user, "contact", type="email", info="")
+        ElementTree.SubElement(user, "{%s}contact" % XML_USERS_NAMESPACE, type="email", info="")
 
         # Pager E-mail
-        ElementTree.SubElement(user, "contact", type="pagerEmail", info="")
+        ElementTree.SubElement(user, "{%s}contact" % XML_USERS_NAMESPACE, type="pagerEmail", info="")
 
         # Jabber Address
-        ElementTree.SubElement(user, "contact", type="xmppAddress", info="")
+        ElementTree.SubElement(user, "{%s}contact" % XML_USERS_NAMESPACE, type="xmppAddress", info="")
 
         # Numeric Pager
-        ElementTree.SubElement(user, "contact", type="numericPage", info="", serviceProvider="")
+        ElementTree.SubElement(user, "{%s}contact" % XML_USERS_NAMESPACE, type="numericPage", info="", serviceProvider="")
 
         # Text Pager
-        ElementTree.SubElement(user, "contact", type="textPage", info="", serviceProvider="")
+        ElementTree.SubElement(user, "{%s}contact" % XML_USERS_NAMESPACE, type="textPage", info="", serviceProvider="")
 
         return user
 
     def updateUser (self, user, fullName = None, comments = None, email = None,
-        pagerEmail = None, xmppAddress = None, numericPager = None, textPager = None):
+        pagerEmail = None, xmppAddress = None, numericPager = None, numericPagerService = None,
+        textPager = None, textPagerService = None):
         """
         Update a user record.
 
@@ -378,6 +450,7 @@ class Users (object):
         @param numericPager: User's numeric pager. (number, service) tuple.
         @param textPager: User's text pager. (number, service) tuple.
         """
+
         if (fullName != None):
             self._setChildElementText(user, "full-name", fullName)
         
@@ -385,19 +458,19 @@ class Users (object):
             self._setChildElementText(user, "user-comments", comments)
 
         if (email != None):
-            self._setContactInfo(user, "email", email[0])
+            self._setContactInfo(user, "email", email)
 
         if (pagerEmail != None):
-            self._setContactInfo(user, "pagerEmail", pagerEmail[0], pagerEmail[1])
+            self._setContactInfo(user, "pagerEmail", pagerEmail)
 
         if (xmppAddress != None):
-            self._setContactInfo(user, "xmppAddress", xmppAddress[0])
+            self._setContactInfo(user, "xmppAddress", xmppAddress)
 
         if (numericPager != None):
-            self._setContactInfo(user, "numericPage", numericPager[0], numericPager[1])
+            self._setContactInfo(user, "numericPage", numericPager, numericPagerService)
 
         if (textPager != None):
-            self._setContactInfo(user, "textPager", textPager[0], textPager[1])
+            self._setContactInfo(user, "textPager", textPager, textPagerService)
 
 
 class Groups (object):

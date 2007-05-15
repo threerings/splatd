@@ -30,5 +30,17 @@
             <contact type="numericPage" info="" serviceProvider=""/>
             <contact type="textPage" info="" serviceProvider=""/>
         </user>
+        <user>
+            <user-id xmlns="">john</user-id>
+            <full-name xmlns="">John Doe</full-name>
+            <user-comments xmlns="">Sea Monkey</user-comments>
+            <password xmlns="">secret</password>
+            <contact type="email" info="john-old@example.org"/>
+            <contact type="pagerEmail" info=""/>
+            <contact type="xmppAddress" info=""/>
+            <contact type="numericPage" info="" serviceProvider=""/>
+            <contact type="textPage" info="" serviceProvider=""/>
+            <duty-schedule xmlns="">Mo0-1200</duty-schedule>
+        </user>
     </users>
 </userinfo>

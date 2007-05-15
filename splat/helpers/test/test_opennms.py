@@ -37,6 +37,8 @@ from twisted.trial import unittest
 import ldap
 import time
 import os
+import tempfile
+import shutil
 
 import splat
 from splat import plugin
@@ -57,20 +59,33 @@ GROUPS_FILE = os.path.join(DATA_DIR, "opennms-groups.xml")
 class PluginTestCase(unittest.TestCase):
     """ Test Splat SSH Helper """
     def setUp(self):
-        self.options = { 
-            'userNameAttribute':'uid',
+        # Set up the (temporary) users file
+        (outputFD, self.usersFile) = tempfile.mkstemp()
+        inputFile = open(USERS_FILE)
+        outputFile = os.fdopen(outputFD, 'w')
+        shutil.copyfileobj(inputFile, outputFile)
+        inputFile.close()
+        outputFile.close()
+
+        # Set up the plugin
+        self.options = {
+            'usersFile'         : self.usersFile,
+            'userNameAttribute' :'uid',
             'fullNameAttribute' : 'cn',
-            'emailAttribute' : 'mail'
+            'emailAttribute'    : 'mail'
         }
+
         self.slapd = slapd.LDAPServer()
         self.conn = ldapclient.Connection(slapd.SLAPD_URI)
         self.hc = plugin.HelperController('test', 'splat.helpers.opennms', 5, 'dc=example,dc=com', '(objectClass=sshAccount)', False, self.options)
         self.entries = self.conn.search(self.hc.searchBase, ldap.SCOPE_SUBTREE, self.hc.searchFilter, self.hc.searchAttr)
+
         # We test that checking the modification timestamp on entries works in
         # plugin.py's test class, so just assume the entry is modified here.
         self.modified = True
 
     def tearDown(self):
+        os.unlink(self.usersFile)
         self.slapd.stop()
 
     def test_valid_options(self):
@@ -94,6 +109,7 @@ class PluginTestCase(unittest.TestCase):
         plugin = self.hc.helperClass()
         for entry in self.entries:
             plugin.work(context, entry, True)
+        plugin.finish()
 
 class UsersTestCase (unittest.TestCase):
     """ Test OpenNMS User Handling """
@@ -120,12 +136,20 @@ class UsersTestCase (unittest.TestCase):
         self.assertEquals(user.find("full-name").text, "testname")
         self.assertEquals(user.find("user-comments").text, "hello")
 
+        self.users.updateUser(user, email="test@email")
+        email = self.users._findUserContact(user, "email")
+        self.assertEquals(email.get("info"), "test@email")
+
     def test_updateUser (self):
         user = self.users.findUser(TEST_USER)
-        self.users.updateUser(user, fullName="testname", xmppAddress=("joe",), numericPager=("555", "Monopoly"))
+        self.users.updateUser(user, fullName="testname", email="test@email", xmppAddress="joe", numericPager="555",
+            numericPagerService = "Monopoly")
     
         user = self.users.findUser(TEST_USER)
         self.assertEquals(user.find("full-name").text, "testname")
+
+        email = self.users._findUserContact(user, "email")
+        self.assertEquals(email.get("info"), "test@email")
 
         pager = self.users._findUserContact(user, "numericPage")
         self.assertEquals(pager.get("info"), "555")
@@ -133,6 +157,10 @@ class UsersTestCase (unittest.TestCase):
         
         xmpp = self.users._findUserContact(user, "xmppAddress")
         self.assertEquals(xmpp.get("info"), "joe")
+
+    def test_getUsers (self):
+        users = self.users.getUsers()
+        self.assertEquals(len(users), 3)
 
 class GroupsTestCase (unittest.TestCase):
     """ Test OpenNMS User Handling """
