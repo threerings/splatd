@@ -324,7 +324,7 @@ class Writer(plugin.Helper):
                 logger.error("Corrupt OpenNMS user record, missing user-id: %s" % ElementTree.tostring(user))
 
             cur = self.db.cursor()
-            cur.execute("SELECT COUNT(*) FROM Users WHERE userName=?;", (userId.text,))
+            cur.execute("SELECT COUNT(*) FROM Users WHERE userName=?", (userId.text,))
             if (cur.fetchone()[0] == 0):
                 userdb.deleteUser(userId.text)
 
