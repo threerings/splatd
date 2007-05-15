@@ -157,7 +157,6 @@ class Writer(plugin.Helper):
         """
         # Connect to the database
         self.db = sqlite.connect(dbfile)
-        self.db.row_factory = _sqlite_dict_factory
 
         # Initialize the users table
         self.db.execute(
@@ -304,6 +303,7 @@ class Writer(plugin.Helper):
         # If they currently exist in the OpenNMS db, update their record.
         # If they do not exist in the OpenNMS db, add their record.
         cur = self.db.cursor()
+        cur.row_factory = _sqlite_dict_factory
         cur.execute("SELECT * from Users")
         for ldapRecord in cur:
             user = userdb.findUser(ldapRecord[OU_USERNAME])
@@ -315,14 +315,20 @@ class Writer(plugin.Helper):
             del ldapRecord[OU_LDAP_DN]
             userdb.updateUser(user, **ldapRecord)
 
-        #for user in userdb.getUsers():
-        #    userName = user.find("user-id")
-        #    if (userName == None):
-        #        logger.error("Corrupt OpenNMS user record, missing user-id: %s" % ElementTree.tostring(user))
+        # Deletion pass. For each user in the OpenNMS db, check if they
+        # are to be found in the LDAP result so. If not, clear out
+        # their record.
+        for user in userdb.getUsers():
+            userId = user.find("user-id")
+            if (userId == None):
+                logger.error("Corrupt OpenNMS user record, missing user-id: %s" % ElementTree.tostring(user))
 
-        #    cur = self.db.cursor()
-        #    cur.execute("SELECT * FROM Users WHERE userName=?;", (userName.text,))
-        #    print cur.fetchone()
+            cur = self.db.cursor()
+            cur.execute("SELECT COUNT(*) FROM Users WHERE userName=?;", (userId.text,))
+            if (cur.fetchone()[0] == 0):
+                userdb.deleteUser(userId.text)
+
+        ElementTree.dump(userdb.doc)
 
 class Users (object):
     def __init__ (self, path):
