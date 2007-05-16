@@ -144,7 +144,16 @@ class Writer(plugin.Helper):
                 continue
 
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
-            
+
+        if (context.attrmap[OU_USERNAME] == None):
+            raise plugin.SplatPluginError, "Missing userNameAttribute option."
+
+        if (context.usersFile == None):
+            raise plugin.SplatPluginError, "Missing usersFile option."
+
+        if (context.groupsFile == None):
+            raise plugin.SplatPluginError, "Missing groupsFile option."
+
         return context
 
 

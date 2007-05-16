@@ -106,9 +106,13 @@ class PluginTestCase(unittest.TestCase):
 
     def test_invalid_option(self):
         """ Test Invalid Option """
-        options = self.options
-        options['foo'] = 'bar'
-        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, options)
+        self.options['foo'] = 'bar'
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, self.options)
+    
+    def test_missing_option (self):
+        # Missing options
+        del self.options['userNameAttribute']
+        self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, self.options)
         
     def test_context(self):
         """ Test Context Consistency With Options """
