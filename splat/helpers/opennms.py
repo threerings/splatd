@@ -310,7 +310,7 @@ class Writer(plugin.Helper):
             self._insertDict("Groups", insertData)
             self.db.commit()
 
-        except sqlite.IntegrityError:
+        except sqlite.IntegrityError, e:
             # We'll get an IntegrityError if the record already exists:
             # No need to add it.
             self.db.rollback()
@@ -446,19 +446,21 @@ class Writer(plugin.Helper):
         # Group Update/Insert Pass: Iterate over each group in the LDAP result set.
         # If it currently exists in the OpenNMS db, update the record.
         # If it does not exist in the OpenNMS db, add the record.
-        cur = self.db.cursor()
-        cur.row_factory = _sqlite_dict_factory
-        cur.execute("SELECT * from Groups")
-        for ldapRecord in cur:
+        groupCursor = self.db.cursor()
+        groupCursor.row_factory = _sqlite_dict_factory
+        groupCursor.execute("SELECT * from Groups")
+        for ldapRecord in groupCursor:
             groupName = ldapRecord[OG_GROUPNAME]
             group = groupdb.findGroup(groupName)
             if (group == None):
                 group = groupdb.createGroup(groupName)
 
             # Set group members
-            cur.execute("SELECT userName FROM GroupMembers WHERE groupName = ?", (groupName,))
+            memberCursor = self.db.cursor()
+            memberCursor.row_factory = _sqlite_dict_factory
+            memberCursor.execute("SELECT userName FROM GroupMembers WHERE groupName = ?", (groupName,))
             groupMembers = []
-            for member in cur:
+            for member in memberCursor:
                 groupMembers.append(member[OU_USERNAME])
             groupdb.setMembers(group, groupMembers)
 
@@ -470,9 +472,9 @@ class Writer(plugin.Helper):
             if (groupName == None):
                 logger.error("Corrupt OpenNMS group record, missing name: %s" % ElementTree.tostring(group))
 
-            cur = self.db.cursor()
-            cur.execute("SELECT COUNT(*) FROM Groups WHERE groupName=?", (groupName.text,))
-            if (cur.fetchone()[0] == 0):
+            countCursor = self.db.cursor()
+            countCursor.execute("SELECT COUNT(*) FROM Groups WHERE groupName=?", (groupName.text,))
+            if (countCursor.fetchone()[0] == 0):
                 groupdb.deleteGroup(groupName.text)
 
         self._writeXML(groupdb, self.groupsFile)
