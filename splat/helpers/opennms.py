@@ -701,12 +701,12 @@ class Groups (object):
         return group
 
     def deleteGroup (self, groupName):
-        user = self.findGroup(groupName)
-        if (user == None):
+        group = self.findGroup(groupName)
+        if (group == None):
             raise NoSuchUserException("Could not find group %s." % groupName)
 
         groups = self._getGroupsElement()
-        groups.remove(user)
+        groups.remove(group)
 
     def setMembers (self, group, members):
         """
