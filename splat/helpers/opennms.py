@@ -64,6 +64,9 @@ OU_TEXT_PAGER           = 'textPager'
 OU_TEXT_PAGER_SERVICE   = 'textPagerService'
 OU_LDAP_DN      = 'ldapDN'
 
+# OpenNMS Group Record Fields
+OG_GROUPNAME    = 'groupName'
+
 class UserExistsException (plugin.SplatPluginError):
     pass
 
@@ -105,6 +108,8 @@ class WriterContext(object):
             OU_TEXT_PAGER_SERVICE  : None
         }
 
+        self.usersFile = None
+        self.groupsFile = None
         self.opennmsGroup = None
 
 class Writer(plugin.Helper):
@@ -130,6 +135,10 @@ class Writer(plugin.Helper):
                 context.usersFile = options[key]
                 continue
 
+            if (key == "groupsFile"):
+                context.groupsFile = options[key]
+                continue
+
             if (key == "opennmsGroup"):
                 context.opennmsGroup = options[key]
                 continue
@@ -144,8 +153,9 @@ class Writer(plugin.Helper):
         # overwrite any files in finish()
         self.fatalError = False
 
-        # Path to the user 'database' xml file
+        # Path to the user/group 'database' xml files
         self.usersFile = None
+        self.groupsFile = None
 
         # Create a temporary database in which to store user records
         dbfile = None
@@ -306,11 +316,16 @@ class Writer(plugin.Helper):
         # context we get.
         if (self.usersFile == None):
             self.usersFile = context.usersFile
+            self.groupsFile = context.groupsFile
         else:
             # Is the setting still the same? It's not overridable.
             if (self.usersFile != context.usersFile):
                 self.fatalError = True
-                raise plugin.SplatPluginError, "The \"usersfile\" setting may not be overridden in a group configuration"
+                raise plugin.SplatPluginError, "The \"usersFile\" setting may not be overridden in a group configuration"
+
+            if (self.groupsFile != context.groupsFile):
+                self.fatalError = True
+                raise plugin.SplatPluginError, "The \"groupsFile\" setting may not be overridden in a group configuration"
 
         # Insert the user record
         self._insertUserRecord(context, ldapEntry)
@@ -319,15 +334,7 @@ class Writer(plugin.Helper):
         if (context.opennmsGroup != None):
             self._insertGroupRecord(context, ldapEntry)
 
-    def finish (self):
-        # If something terrible happened, don't overwrite the user XML file
-        if (self.fatalError):
-            return
-
-        # If no work was done, there won't be a users file
-        if (self.usersFile == None):
-            return
-
+    def _finishUsers (self):
         # Open up the OpenNMS user database.
         userdb = Users(self.usersFile)
 
@@ -346,7 +353,7 @@ class Writer(plugin.Helper):
             del ldapRecord[OU_USERNAME]
             del ldapRecord[OU_LDAP_DN]
             userdb.updateUser(user, **ldapRecord)
-
+        
         # User Deletion pass. For each user in the OpenNMS db, check if they
         # are to be found in the LDAP result so. If not, clear out
         # their record.
@@ -361,6 +368,58 @@ class Writer(plugin.Helper):
                 userdb.deleteUser(userId.text)
 
         ElementTree.dump(userdb.doc)
+
+    def _finishGroups (self):
+        groupdb = Groups(self.groupsFile)
+
+        # Group Update/Insert Pass: Iterate over each group in the LDAP result set.
+        # If it currently exists in the OpenNMS db, update the record.
+        # If it does not exist in the OpenNMS db, add the record.
+        cur = self.db.cursor()
+        cur.row_factory = _sqlite_dict_factory
+        cur.execute("SELECT * from Groups")
+        for ldapRecord in cur:
+            groupName = ldapRecord[OG_GROUPNAME]
+            group = groupdb.findGroup(groupName)
+            if (group == None):
+                group = groupdb.createGroup(groupName)
+
+            # Set group members
+            cur.execute("SELECT userName FROM GroupMembers WHERE groupName = ?", (groupName,))
+            groupMembers = []
+            for member in cur:
+                groupMembers.append(member[OU_USERNAME])
+            groupdb.setMembers(group, groupMembers)
+
+        # Group deletion pass. For each group in the OpenNMS db, check if it
+        # is to be found in the LDAP result so. If not, clear out
+        # the record.
+        for group in groupdb.getGroups():
+            groupName = group.find("name")
+            if (groupName == None):
+                logger.error("Corrupt OpenNMS group record, missing name: %s" % ElementTree.tostring(group))
+
+            cur = self.db.cursor()
+            cur.execute("SELECT COUNT(*) FROM Groups WHERE groupName=?", (groupName.text,))
+            if (cur.fetchone()[0] == 0):
+                groupdb.deleteGroup(groupName.text)
+
+        ElementTree.dump(groupdb.doc)
+
+    def finish (self):
+        # If something terrible happened, don't overwrite the user XML file
+        if (self.fatalError):
+            return
+
+        # If no work was done, there won't be a users file
+        if (self.usersFile == None):
+            return
+
+        # User pass
+        self._finishUsers()
+
+        # Group pass
+        self._finishGroups()
 
 class Users (object):
     def __init__ (self, path):
@@ -409,7 +468,7 @@ class Users (object):
 
     def deleteUser (self, username):
         user = self.findUser(username)
-        if (self.findUser == None):
+        if (user == None):
             raise NoSuchUserException("Could not find user %s." % username)
 
         users = self._getUsersElement()
@@ -534,8 +593,11 @@ class Groups (object):
     def __init__ (self, path):
         self.doc = ElementTree.ElementTree(file = path)
 
+    def getGroups (self):
+        return self.doc.findall("./{%s}groups/*" % (XML_GROUPS_NAMESPACE))
+
     def findGroup (self, groupName):
-        for entry in self.doc.findall("./{%s}groups/*" % (XML_GROUPS_NAMESPACE)):
+        for entry in self.getGroups():
             groupId = entry.find("name")
             if (groupId != None and groupId.text == groupName):
                 return entry
@@ -543,7 +605,7 @@ class Groups (object):
         # Not found
         return None
 
-    def _getGroups (self):
+    def _getGroupsElement (self):
         return self.doc.find("./{%s}groups" % (XML_GROUPS_NAMESPACE))
 
     def createGroup (self, groupName, comments = ""):
@@ -556,7 +618,7 @@ class Groups (object):
             raise GroupExistsException("Group %s exists." % groupName)
 
         # Create the group record
-        group = ElementTree.SubElement(self._getGroups(), "group")
+        group = ElementTree.SubElement(self._getGroupsElement(), "group")
 
         # Set up the standard group data
         groupId = ElementTree.SubElement(group, "name", xmlns="")
@@ -566,6 +628,14 @@ class Groups (object):
         groupComments.text = comments
 
         return group
+
+    def deleteGroup (self, groupName):
+        user = self.findGroup(groupName)
+        if (user == None):
+            raise NoSuchUserException("Could not find group %s." % groupName)
+
+        groups = self._getGroupsElement()
+        groups.remove(user)
 
     def setMembers (self, group, members):
         """

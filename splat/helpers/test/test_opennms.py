@@ -58,18 +58,25 @@ GROUPS_FILE = os.path.join(DATA_DIR, "opennms-groups.xml")
 # Test Cases
 class PluginTestCase(unittest.TestCase):
     """ Test Splat SSH Helper """
-    def setUp(self):
-        # Set up the (temporary) users file
-        (outputFD, self.usersFile) = tempfile.mkstemp()
-        inputFile = open(USERS_FILE)
+    def _mkstempTestFile (self, inputPath):
+        # Set up the (temporary) file copy
+        (outputFD, outputPath) = tempfile.mkstemp()
+        inputFile = open(inputPath)
         outputFile = os.fdopen(outputFD, 'w')
         shutil.copyfileobj(inputFile, outputFile)
         inputFile.close()
         outputFile.close()
 
+        return outputPath
+
+    def setUp(self):
+        self.usersFile = self._mkstempTestFile(USERS_FILE)
+        self.groupsFile = self._mkstempTestFile(GROUPS_FILE)
+
         # Set up the plugin
         self.options = {
             'usersFile'         : self.usersFile,
+            'groupsFile'        : self.groupsFile,
             'opennmsGroup'      : 'Accounting',
             'userNameAttribute' :'uid',
             'fullNameAttribute' : 'cn',
@@ -87,6 +94,7 @@ class PluginTestCase(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.usersFile)
+        os.unlink(self.groupsFile)
         self.slapd.stop()
 
     def test_valid_options(self):
@@ -174,9 +182,15 @@ class GroupsTestCase (unittest.TestCase):
         self.assertEquals(group.find("user").text, "admin")
 
     def test_createGroup (self):
-        group = self.groups.createGroup("testgroup", comments="hello")
-        self.assertEquals(group.find("name").text, "testgroup")        
+        group = self.groups.createGroup("newgroup", comments="hello")
+        self.assertEquals(group.find("name").text, "newgroup")
         self.assertEquals(group.find("comments").text, "hello")
+
+    def test_deleteGroup (self):
+        group = self.groups.createGroup("newgroup", comments="hello")
+        self.assert_(self.groups.findGroup("newgroup") != None)
+        self.groups.deleteGroup("newgroup")
+        self.assertEquals(self.groups.findGroup("newgroup"), None)
 
     def test_setMembers (self):
         group = self.groups.findGroup(TEST_GROUP)
