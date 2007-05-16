@@ -201,6 +201,7 @@ class Writer(plugin.Helper):
                 comments        TEXT DEFAULT NULL,
                 email           TEXT DEFAULT NULL,
                 pagerEmail      TEXT DEFAULT NULL,
+                xmppAddress     TEXT DEFAULT NULL,
                 numericPager    TEXT DEFAULT NULL,
                 numericPagerService TEXT DEFAULT NULL,
                 textPager       TEXT DEFAULT NULL,
