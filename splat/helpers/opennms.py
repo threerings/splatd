@@ -47,6 +47,9 @@ except ImportError:
 # Logger
 logger = logging.getLogger(splat.LOG_NAME)
 
+# Output File Encoding
+XML_ENCODING = "UTF-8"
+
 # XML Namespaces
 XML_USERS_NAMESPACE = "http://xmlns.opennms.org/xsd/users"
 XML_GROUPS_NAMESPACE = "http://xmlns.opennms.org/xsd/groups"
@@ -374,7 +377,7 @@ class Writer(plugin.Helper):
 
         # Dump the XML
         try:
-            etree.doc.write(output)
+            etree.doc.write(output, XML_ENCODING)
             output.close()
         except Exception, e:
             os.unlink(tempPath)
