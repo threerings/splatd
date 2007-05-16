@@ -36,7 +36,7 @@ from twisted.trial import unittest
 
 import ldap
 import time
-import os
+import os, stat
 import tempfile
 import shutil
 
@@ -66,6 +66,9 @@ class PluginTestCase(unittest.TestCase):
         shutil.copyfileobj(inputFile, outputFile)
         inputFile.close()
         outputFile.close()
+
+        # World-readable
+        os.chmod(outputPath, 0644)
 
         return outputPath
 
@@ -119,6 +122,22 @@ class PluginTestCase(unittest.TestCase):
         for entry in self.entries:
             plugin.work(context, entry, True)
         plugin.finish()
+
+        # Verify that new users were added, old users deleted
+        userdb = opennms.Users(self.usersFile)
+        self.assertNotEqual(userdb.findUser("john"), None)
+        self.assertEqual(userdb.findUser("admin"), None)
+
+        fstat = os.stat(self.usersFile)
+        self.assertEqual(stat.S_IMODE(fstat.st_mode), 0644)
+
+        # Verify that new groups were created, old groups deleted
+        groupdb = opennms.Groups(self.groupsFile)
+        self.assertNotEqual(groupdb.findGroup("Accounting"), None)
+        self.assertEqual(groupdb.findGroup("admin"), None)
+
+        fstat = os.stat(self.groupsFile)
+        self.assertEqual(stat.S_IMODE(fstat.st_mode), 0644)
 
 class UsersTestCase (unittest.TestCase):
     """ Test OpenNMS User Handling """

@@ -30,7 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os, tempfile, logging
+import os, tempfile, logging, stat
 
 import splat
 from splat import plugin
@@ -334,6 +334,50 @@ class Writer(plugin.Helper):
         if (context.opennmsGroup != None):
             self._insertGroupRecord(context, ldapEntry)
 
+    def _writeXML (self, etree, filePath):
+        # Write out the new XML file. mkstemp()-created files are
+        # "readable and writable only by the creating user ID", so we'll use that,
+        # and then reset permissions to match the original file.
+
+        # Open the temporary file
+        try:
+            outputDir = os.path.dirname(filePath)
+            (tempFd, tempPath) = tempfile.mkstemp(dir=outputDir)
+        except Exception, e:
+            raise plugin.SplatPluginError, "Failed to create output file: %s" % e
+
+        # Wrap the file descriptor
+        try:
+            output = os.fdopen(tempFd, 'w')
+        except Exception, e:
+            # Highly unlikely
+            os.unlink(tempPath)
+            raise plugin.SplatPluginError, "Failed to open output file: %s" % e
+
+        # Dump the XML
+        try:
+            etree.doc.write(output)
+            output.close()
+        except Exception, e:
+            os.unlink(tempPath)
+            raise plugin.SplatPluginError, "Failed to write to output file: %s" % e
+
+        # Set permissions
+        try:
+            fstat = os.stat(filePath)
+            os.chmod(tempPath, stat.S_IMODE(fstat.st_mode))
+            os.chown(tempPath, fstat.st_uid, fstat.st_gid)
+        except Exception, e:
+            os.unlink(tempPath)
+            raise plugin.SplatPluginError, "Failed to set output permissions: %s" % e
+
+        # Atomicly replace the old file
+        try:
+            os.rename(tempPath, filePath)
+        except Exception, e:
+            os.unlink(tempPath)
+            raise plugin.SplatPluginError, "Failed to rename output file: %s" % e
+
     def _finishUsers (self):
         # Open up the OpenNMS user database.
         userdb = Users(self.usersFile)
@@ -366,9 +410,9 @@ class Writer(plugin.Helper):
             cur.execute("SELECT COUNT(*) FROM Users WHERE userName=?", (userId.text,))
             if (cur.fetchone()[0] == 0):
                 userdb.deleteUser(userId.text)
-
-        ElementTree.dump(userdb.doc)
-
+        
+        self._writeXML(userdb, self.usersFile)
+            
     def _finishGroups (self):
         groupdb = Groups(self.groupsFile)
 
@@ -404,7 +448,7 @@ class Writer(plugin.Helper):
             if (cur.fetchone()[0] == 0):
                 groupdb.deleteGroup(groupName.text)
 
-        ElementTree.dump(groupdb.doc)
+        self._writeXML(groupdb, self.groupsFile)
 
     def finish (self):
         # If something terrible happened, don't overwrite the user XML file
