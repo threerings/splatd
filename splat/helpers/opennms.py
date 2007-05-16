@@ -398,7 +398,10 @@ class Writer(plugin.Helper):
 
     def _finishUsers (self):
         # Open up the OpenNMS user database.
-        userdb = Users(self.usersFile)
+        try:
+            userdb = Users(self.usersFile)
+        except Exception, e:
+            raise plugin.SplatPluginError, "Failed to open %s: %s" % (self.usersFile, e)
 
         # User Update/Insert Pass: Iterate over each user in the LDAP result set.
         # If they currently exist in the OpenNMS db, update their record.
@@ -432,7 +435,10 @@ class Writer(plugin.Helper):
         self._writeXML(userdb, self.usersFile)
             
     def _finishGroups (self):
-        groupdb = Groups(self.groupsFile)
+        try:
+            groupdb = Groups(self.groupsFile)
+        except Exception, e:
+            raise plugin.SplatPluginError, "Failed to open %s: %s" % (self.groupsFile, e)
 
         # Group Update/Insert Pass: Iterate over each group in the LDAP result set.
         # If it currently exists in the OpenNMS db, update the record.
