@@ -105,6 +105,8 @@ class WriterContext(object):
             OU_TEXT_PAGER_SERVICE  : None
         }
 
+        self.opennmsGroup = None
+
 class Writer(plugin.Helper):
     @classmethod
     def attributes(self): 
@@ -126,6 +128,10 @@ class Writer(plugin.Helper):
 
             if (key == "usersFile"):
                 context.usersFile = options[key]
+                continue
+
+            if (key == "opennmsGroup"):
+                context.opennmsGroup = options[key]
                 continue
 
             raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
@@ -246,6 +252,55 @@ class Writer(plugin.Helper):
 
         return result
 
+
+    def _insertUserRecord (self, context, ldapEntry):
+        # Validate the available attributes
+        attributes = ldapEntry.attributes
+        if (not attributes.has_key(context.attrmap[OU_USERNAME])):
+            raise plugin.SplatPluginError, "Required attribute %s not found for dn %s." % (context.attrmap[OU_USERNAME], ldapEntry.dn)
+
+        # Insert the user record in the database
+        insertData = self._createUserAttributeDict(ldapEntry, context.attrmap)
+
+        try:
+            self._insertDict("Users", insertData)
+            self.db.commit()
+        except Exception, e:
+            self.fatalError = True
+            raise plugin.SplatPluginError, "Failed to commit user record to database for dn %s: %s" % (ldapEntry.dn, e)
+
+    def _insertGroupRecord (self, context, ldapEntry):
+        insertData = {
+            'groupName' : context.opennmsGroup
+        }
+
+        # Attempt to insert the group record
+        try:
+            self._insertDict("Groups", insertData)
+            self.db.commit()
+
+        except sqlite.IntegrityError:
+            # We'll get an IntegrityError if the record already exists:
+            # No need to add it.
+            self.db.rollback()
+
+        except Exception, e:
+            self.fatalError = True
+            raise plugin.SplatPluginError, "Failed to commit group record to database for dn: %s" % (ldapEntry.dn, e)
+
+        # Insert the group membership record
+        insertData = {
+            'groupName' : context.opennmsGroup,
+            'userName' : ldapEntry.attributes[context.attrmap[OU_USERNAME]][0]
+        }
+
+        try:
+            self._insertDict("GroupMembers", insertData)
+            self.db.commit()
+        except Exception, e:
+            self.fatalError = True
+            raise plugin.SplatPluginError, "Failed to commit group membership record to database for dn: %s" (ldapEntry.dn, e)
+
     def work (self, context, ldapEntry, modified):
         # We need to pull the location of the user file out of the first configuration
         # context we get.
@@ -257,35 +312,12 @@ class Writer(plugin.Helper):
                 self.fatalError = True
                 raise plugin.SplatPluginError, "The \"usersfile\" setting may not be overridden in a group configuration"
 
-        # Validate the available attributes
-        attributes = ldapEntry.attributes
-        if (not attributes.has_key(context.attrmap[OU_USERNAME])):
-            raise plugin.SplatPluginError, "Required attribute %s not found for dn %s." % (context.attrmap[OU_USERNAME], ldapEntry.dn)
+        # Insert the user record
+        self._insertUserRecord(context, ldapEntry)
 
-        """
-        CREATE TABLE Users (
-            userName        TEXT NOT NULL PRIMARY KEY,
-            ldapDN          TEXT NOT NULL,
-            fullName        TEXT DEFAULT NULL,
-            comments        TEXT DEFAULT NULL,
-            email           TEXT DEFAULT NULL,
-            pagerEmail      TEXT DEFAULT NULL,
-            numericPager    TEXT DEFAULT NULL,
-            numericPagerService TEXT DEFAULT NULL,
-            textPager       TEXT DEFAULT NULL,
-            textPagerService    TEXT DEFAULT NULL
-        );
-        """
-
-        insertData = self._createUserAttributeDict(ldapEntry, context.attrmap)
-        
-        try:
-            self._insertDict("Users", insertData)
-            self.db.commit()
-        except Exception, e:
-            self.fatalError = True
-            raise plugin.SplatPluginError, "Failed to commit user record to database for dn %s: %s" % (ldapEntry.dn, e)
-
+        # Insert the group record
+        if (context.opennmsGroup != None):
+            self._insertGroupRecord(context, ldapEntry)
 
     def finish (self):
         # If something terrible happened, don't overwrite the user XML file
@@ -299,7 +331,7 @@ class Writer(plugin.Helper):
         # Open up the OpenNMS user database.
         userdb = Users(self.usersFile)
 
-        # Update/Insert Pass: Iterate over each user in the LDAP result set.
+        # User Update/Insert Pass: Iterate over each user in the LDAP result set.
         # If they currently exist in the OpenNMS db, update their record.
         # If they do not exist in the OpenNMS db, add their record.
         cur = self.db.cursor()
@@ -315,7 +347,7 @@ class Writer(plugin.Helper):
             del ldapRecord[OU_LDAP_DN]
             userdb.updateUser(user, **ldapRecord)
 
-        # Deletion pass. For each user in the OpenNMS db, check if they
+        # User Deletion pass. For each user in the OpenNMS db, check if they
         # are to be found in the LDAP result so. If not, clear out
         # their record.
         for user in userdb.getUsers():

@@ -70,6 +70,7 @@ class PluginTestCase(unittest.TestCase):
         # Set up the plugin
         self.options = {
             'usersFile'         : self.usersFile,
+            'opennmsGroup'      : 'Accounting',
             'userNameAttribute' :'uid',
             'fullNameAttribute' : 'cn',
             'emailAttribute'    : 'mail'
