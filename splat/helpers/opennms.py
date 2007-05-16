@@ -89,7 +89,6 @@ def _sqlite_dict_factory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
-
 class WriterContext(object):
     def __init__(self):
         # A map of (XML/database) fields to LDAP attributes
@@ -108,6 +107,11 @@ class WriterContext(object):
             OU_TEXT_PAGER_SERVICE  : None
         }
 
+        # Map of configuration keys to the attribute map
+        self.config_attrmap = {}
+        for key in self.attrmap.iterkeys():
+            self.config_attrmap[key.lower() + "attribute"] = key
+
         self.usersFile = None
         self.groupsFile = None
         self.opennmsGroup = None
@@ -125,21 +129,25 @@ class Writer(plugin.Helper):
         for key in options.iterkeys():
             # Do some magic to check for 'attribute keys' without enumerating
             # them all over again.
-            if (key.endswith("Attribute")):
-                attrKey = key[:len(key) - len("Attribute")]
+            if (key.endswith("attribute")):
+                try:
+                    attrKey = context.config_attrmap[key]
+                except KeyError:
+                    raise plugin.SplatPluginError, "Invalid option '%s' specified." % key
+
                 if (context.attrmap.has_key(attrKey)):
                     context.attrmap[attrKey] = options[key]
                     continue
 
-            if (key == "usersFile"):
+            if (key == "usersfile"):
                 context.usersFile = options[key]
                 continue
 
-            if (key == "groupsFile"):
+            if (key == "groupsfile"):
                 context.groupsFile = options[key]
                 continue
 
-            if (key == "opennmsGroup"):
+            if (key == "opennmsgroup"):
                 context.opennmsGroup = options[key]
                 continue
 

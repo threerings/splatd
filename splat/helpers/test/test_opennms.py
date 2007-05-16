@@ -78,12 +78,12 @@ class PluginTestCase(unittest.TestCase):
 
         # Set up the plugin
         self.options = {
-            'usersFile'         : self.usersFile,
-            'groupsFile'        : self.groupsFile,
-            'opennmsGroup'      : 'Accounting',
-            'userNameAttribute' :'uid',
-            'fullNameAttribute' : 'cn',
-            'emailAttribute'    : 'mail'
+            'usersfile'         : self.usersFile,
+            'groupsfile'        : self.groupsFile,
+            'opennmsgroup'      : 'Accounting',
+            'usernameattribute' :'uid',
+            'fullnameattribute' : 'cn',
+            'emailattribute'    : 'mail'
         }
 
         self.slapd = slapd.LDAPServer()
@@ -111,7 +111,7 @@ class PluginTestCase(unittest.TestCase):
     
     def test_missing_option (self):
         # Missing options
-        del self.options['userNameAttribute']
+        del self.options['usernameattribute']
         self.assertRaises(splat.SplatError, self.hc.helperClass.parseOptions, self.options)
         
     def test_context(self):
