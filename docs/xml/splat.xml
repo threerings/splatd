@@ -15,7 +15,7 @@
     </legalnotice>
 
     <copyright>
-      <year>2005 - 2006</year>
+      <year>2005 - 2007</year>
 
       <holder>Landon Fuller, Nick Barkas, and Three Rings Design, Inc.</holder>
     </copyright>
@@ -542,6 +542,148 @@ objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
         </variablelist>
       </sect2>
     </sect1>
+
+    <sect1>
+      <title>OpenNMS User Synchronization</title>
+      
+      <para>
+        The OpenNMS User Plugin was written to support synchronization of
+        user contact information with the <ulink url="http://www.opennms.org">OpenNMS</ulink>
+        network management system. The plugin will synchronize users with OpenNMS
+        1.3's <filename>users.xml</filename> and <filename>groups.xml</filename>.
+      </para>
+
+      <para>
+        This plugin should be used in combination with
+        <ulink url="http://www.opennms.org/index.php/Acegi_Security_and_LDAP">OpenNMS's Acegi LDAP authentication
+        support</ulink>.
+      </para>
+ 
+      <sect2>
+        <title>OpenNMS User Synchronization Service Options</title>
+        
+        <para>
+          The OpenNMS User Synchronization service module supports
+          synchronizing contact information with arbitrary LDAP
+          attributes.
+        </para>
+        
+        <sect3>
+          <title>OpenNMS Service Options</title>
+          
+          <variablelist>
+            <varlistentry>
+              <term>usersFile</term>
+              <listitem>
+                <para>Location of the OpenNMS <filename>users.xml</filename> file.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>groupsFile</term>
+              <listitem>
+                <para>
+                  Location of the OpenNMS <filename>groups.xml</filename> file.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>opennmsGroup</term>
+              <listitem>
+                <para>
+                  Specifies the OpenNMS group in which to place the user.
+                  Future versions of this plugin are expected to support mapping
+                  of arbitrary LDAP groups to OpenNMS groups.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>userNameAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's login name (eg: uid).
+                </para>
+              </listitem>
+            </varlistentry>
+         
+            <varlistentry>
+              <term>fullNameAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's full name (eg: cn).
+                </para>
+              </listitem>
+            </varlistentry>
+         
+            <varlistentry>
+              <term>commentsAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing OpenNMS user comments (eg: title).
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>emailAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's primary e-mail address (eg: mail).
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>xmppAddressAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's XMPP (Jabber) address.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>numericPagerAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's numeric pager number.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>numericPagerServiceAttribute</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's numeric pager service name.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>textPager</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's text pager number.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>textPagerService</term>
+              <listitem>
+                <para>
+                  LDAP attribute containing the user's text pager service name.
+                </para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+      </sect2>
+    </sect1>
+
   </chapter>
 
   <chapter>
