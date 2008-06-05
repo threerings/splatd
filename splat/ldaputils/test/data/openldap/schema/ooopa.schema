@@ -1,0 +1,24 @@
+#
+# ooopa LDAP v3 schema
+#
+# Maintained by Landon Fuller <landonf@threerings.net>
+#
+# This schema depends on:
+#	- ooo.schema
+#	- core.schema
+#	- nis.schema
+#
+# OID Allocation from the Three Rings Design Private Enterprise Arc
+
+# Attribute Type Definitions
+
+# Octet String
+attributetype ( oooPAAttributes:1 NAME 'pendingPurge'
+	DESC 'Timestamp of pending deletion date'
+	EQUALITY generalizedTimeMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE )
+
+objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
+	DESC 'Purgeable Account'
+	SUP top AUXILIARY
+	MAY ( pendingPurge ) )
