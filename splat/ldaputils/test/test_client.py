@@ -37,11 +37,11 @@
 from twisted.trial import unittest
 import ldap
 
-from ldaputils import client as ldapclient
+from splat.ldaputils import client as ldapclient
 
 # Useful Constants
-from ldaputils.test import DATA_DIR
-from ldaputils.test import slapd
+from splat.ldaputils.test import DATA_DIR
+from splat.ldaputils.test import slapd
 
 # Test Cases
 class ConnectionTestCase(unittest.TestCase):
