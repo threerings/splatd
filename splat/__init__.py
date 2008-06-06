@@ -35,11 +35,11 @@ import os
 __all__ = ['helpers', 'test']
 
 # General Info
-__version__ = '1.1-rc4'
+__version__ = '1.2-rc1'
 __license__ = 'BSD License'
 __author__ = 'Three Rings Design, Inc.'
 __author_email__ = 'dpw@threerings.net'
-__copyright__ = 'Copyright (C) 2005 Three Rings Design, Inc. All rights reserved.'
+__copyright__ = 'Copyright (C) 2005-2008 Three Rings Design, Inc. All rights reserved.'
 
 # Useful Constants
 LOG_NAME = 'splat:'
