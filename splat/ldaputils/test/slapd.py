@@ -56,6 +56,7 @@ SLAPD_PATHS = [
     '/usr/local/libexec/slapd',
     '/opt/local/libexec/slapd',
     '/usr/sbin/slapd',
+    '/usr/libexec/slapd',
     None
 ]
 

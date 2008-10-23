@@ -31,7 +31,8 @@ moduleload  back_bdb
 database	bdb
 suffix		"dc=example,dc=com"
 rootdn		"cn=Manager,dc=example,dc=com"
-rootpw		secret
+# This hashed password is "secret" (no quotes)
+rootpw		{SSHA}QuGSxVclkOYaUdm1WDbB4iv9aguIwaQ2
 # The database directory MUST exist prior to running slapd AND 
 # should only be accessible by the slapd and slap tools.
 # Mode 700 recommended.
