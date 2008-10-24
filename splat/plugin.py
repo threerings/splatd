@@ -125,11 +125,26 @@ class HelperController(object):
         # Iterate over the results
         for entry in entries:
             context = None
-            modified = True
+            entryModified = False
+            groupModified = False
             # Find the group helper instance, if any
             for group in self.groups:
                 if (group.isMember(ldapConnection, entry.dn)):
                     context = self.groupsCtx[group]
+                    
+                    # Get the modifyTimestamp of this group. If the group has 
+                    # been modified, this entry might have just been added to 
+                    # the group, in which case we want to treat the entry as 
+                    # modified.
+                    groupEntry = ldapConnection.search(group.baseDN, group.scope, group.filter, ('modifyTimestamp',))[0]
+                    if (groupEntry.attributes.has_key('modifyTimestamp')):
+                        groupModTime = groupEntry.getModTime()
+                        if groupModTime != None and groupModTime >= self._lastRun:
+                            groupModified = True
+                    # If no timestamp, assume the group has been modified.
+                    else:
+                        groupModified = True
+                    
                     # Break to outer loop
                     break
 
@@ -142,24 +157,20 @@ class HelperController(object):
 
             # Check if our entry has been modified
             if (entry.attributes.has_key('modifyTimestamp')):
-                # Convert LDAP UTC time to seconds since epoch
-                try:
-                    entryMod = time.mktime(time.strptime(entry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
-                except ValueError:
-                    logger.error("Entry %s contains invalid modifyTimestamp attribute value '%s'" % (entry.dn, entry.attributes['modifyTimestamp'][0], self.name))
+                entryModTime = entry.getModTime()
+                # Go on to next entry if the modifyTimetamp is malformed
+                if entryModTime == None:
                     continue
 
-                if (entryMod >= self._lastRun):
-                    modified = True
-                else:
-                    modified = False
+                if (entryModTime >= self._lastRun):
+                    entryModified = True
 
             # If there is no modifyTimestamp, just say entry has been modified
             else:
-                modified = True
+                entryModified = True
 
             try:
-                plugin.work(context, entry, modified)
+                plugin.work(context, entry, entryModified or groupModified)
             except splat.SplatError, e:
                 failure = True
                 logger.error("Helper invocation for '%s' failed with error: %s" % (self.name, e))

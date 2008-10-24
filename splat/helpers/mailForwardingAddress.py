@@ -126,13 +126,13 @@ class Writer(plugin.Helper):
             # stat() the file, check if it is outdated
             try:
                 fileTime = os.stat(filename)[stat.ST_MTIME]
-                # Convert LDAP UTC time to seconds since epoch
-                entryTime = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
     
                 # If the entry is older than the file, skip it
-                # This will only occur on the very first daemon iteration,
-                # where modified is always 'True'
-                if (entryTime < fileTime):
+                # This will occur when someone has been added to a group that 
+                # we filter on, but this entry hasn't been changed since the 
+                # key was written. Also will happen on first iteration by 
+                # daemon, because modifed will always be true then.
+                if (ldapEntry.getModTime() < fileTime):
                     logger.debug("Skipping %s, up-to-date" % filename)
                     return
     

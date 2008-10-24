@@ -131,6 +131,18 @@ class Entry(object):
         """
         self.dn = dn
         self.attributes = attributes
+    
+    def getModTime(self):
+        """
+        Returns modification time of entry, in seconds since epoch. If the 
+        timestamp is malformed, returns None and logs an error. 
+        """
+        # Convert LDAP UTC time to seconds since epoch
+        try:
+            return time.mktime(time.strptime(self.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
+        except ValueError:
+            logger.error("Entry %s contains invalid modifyTimestamp attribute value '%s'" % (self.dn, self.attributes['modifyTimestamp'][0]))
+            return None
 
 class Modification(object):
     """
