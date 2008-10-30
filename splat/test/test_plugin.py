@@ -49,14 +49,14 @@ from splat.test import DATA_DIR
 
 # Mock Helper
 class MockHelper(plugin.Helper):
-    # Last instance work success flag and context. This is obviously
-    # not safe outside of testing
+    # Last instance work success and modified flags, context, and run time. 
+    # This is obviously not safe outside of testing
     success = None
     context = None
+    modified = None
 
     def __init__(self):
         MockHelper.success = False
-        self.lastRun = 0
 
     @classmethod
     def attributes(self):
@@ -71,17 +71,10 @@ class MockHelper(plugin.Helper):
         assert(context['test'] == 'value')
         assert(ldapEntry.dn == 'uid=john,ou=People,dc=example,dc=com')
         assert(ldapEntry.attributes.has_key('modifyTimestamp'))
-        # Independently verify the modify time stamp
-        entryMod = time.mktime(time.strptime(ldapEntry.attributes['modifyTimestamp'][0] + 'UTC', "%Y%m%d%H%M%SZ%Z")) - time.timezone
-        if (entryMod >= self.lastRun):
-            assert(modified)
-        else:
-            assert(not modified)
 
         MockHelper.context = context
         MockHelper.success = True
-
-        self.lastRun = int(time.time())
+        MockHelper.modified = modified
 
 # Test Cases
 class HelperWithControllerTestCase(unittest.TestCase):
@@ -96,16 +89,24 @@ class HelperWithControllerTestCase(unittest.TestCase):
 
         MockHelper.context = None
         MockHelper.success = False
+        MockHelper.modified = False
 
     def tearDown(self):
         self.slapd.stop()
 
     def test_work(self):
-        # Test a new, unmodified entry
+        # We want self.hc._lastRun saved in the first call to self.hc.work() 
+        # to be at least one second greater than the entry's modifiedTimestamp
+        time.sleep(1)
+        
+        # Test a new, unmodified entry. Should appear modified becuase this is
+        # the first run.
         self.hc.work(self.conn)
+        self.assertEquals(MockHelper.modified, True)
 
         # Try it again, without bumping the modTimestamp
         self.hc.work(self.conn)
+        self.assertEquals(MockHelper.modified, False)
 
         # Up the modTimestamp
         # Acquire write privs
@@ -119,6 +120,7 @@ class HelperWithControllerTestCase(unittest.TestCase):
 
         # Test with the upped mod date
         self.hc.work(self.conn)
+        self.assertEquals(MockHelper.modified, True)
 
     def test_requireGroup(self):
         self.hc.requireGroup = True
@@ -158,3 +160,37 @@ class HelperWithControllerTestCase(unittest.TestCase):
         self.hc.work(self.conn)
         self.assertEquals(MockHelper.success, True)
         self.assertEquals(MockHelper.context['group'], 'developers')
+
+    def test_modifyGroup(self):
+        # Add a filter for a group that the user isn't in yet.
+        self.hc.requireGroup = True
+        filter = ldapclient.GroupFilter(slapd.BASEDN, ldap.SCOPE_SUBTREE, '(&(objectClass=groupOfUniqueNames)(cn=administrators))', 'uniqueMember')
+        self.hc.addGroup(filter, {'test':'value', 'group':'administrators'})
+
+        # Acquire write privs
+        self.conn.simple_bind(slapd.ROOTDN, slapd.ROOTPW)
+
+        # Find group and modify it
+        entry = self.conn.search(slapd.BASEDN, ldap.SCOPE_SUBTREE, 'cn=administrators', None)[0]
+        mod = ldapclient.Modification(entry.dn)
+        mod.add('uniqueMember', 'uid=john,ou=People,dc=example,dc=com')
+        self.conn.modify(mod)
+        
+        # Again we have to wait a second so the modifyTimestamp for the group
+        # is older then the time that will be saved to self.hc._lastRun on the
+        # next call to self.hc.work()
+        time.sleep(1)
+        
+        # Make sure the user was really added to the group for good measure
+        self.assertTrue(filter.isMember(self.conn, 'uid=john,ou=People,dc=example,dc=com'))
+        
+        # Ensure now that the group has been modified that the entry looks 
+        # that way too.
+        self.hc.work(self.conn)
+        self.assertEquals(MockHelper.success, True)
+        self.assertEquals(MockHelper.context['group'], 'administrators')
+        self.assertEquals(MockHelper.modified, True)
+        
+        # Try again, making sure the entry isn't modified this time
+        self.hc.work(self.conn)
+        self.assertEquals(MockHelper.modified, False)
