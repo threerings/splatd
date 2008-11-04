@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Chapter 3. Writing New Modules</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="prev" href="ch02s06.html" title="OpenNMS User Synchronization" /><link rel="next" href="ch03s02.html" title="Helper Class Implementation" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 3. Writing New Modules</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr></table><hr /></div><div class="chapter" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title"><a id="id394692"></a>Chapter 3. Writing New Modules</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="ch03.html#id394698">Introduction</a></span></dt><dt><span class="sect1"><a href="ch03s02.html">Helper Class Implementation</a></span></dt><dd><dl><dt><span class="sect2"><a href="ch03s02.html#id394826">Error Handling and Logging</a></span></dt><dt><span class="sect2"><a href="ch03s02.html#id394860">Parsing Configuration Options</a></span></dt><dt><span class="sect2"><a href="ch03s02.html#id394899">Handling LDAP Entries</a></span></dt></dl></dd></dl></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id394698"></a>Introduction</h2></div></div></div><p>Splat Helper Modules are implemented as a Python module containing
+      a single subclass of
+      <code class="computeroutput">splat.plugin.Helper</code>. The subclass must
+      implement three methods: <code class="methodname">attributes</code>,
+      <code class="methodname">parseOptions</code>, and
+      <code class="methodname">work</code>.</p><p>An instance of the helper class is instantiated for each
+      <code class="computeroutput">Service Helper Configuration</code> in the
+      <code class="filename">splat.conf</code> configuration file. The
+      <code class="methodname">parseOptions</code> method is passed a dictionary of
+      key value pairs, as derived from any helper-specific
+      <code class="computeroutput">Option</code> configuration directives.
+      Individual <code class="computeroutput">Group</code> directives may supply
+      group-specific options.</p><p>The <code class="methodname">parseOptions</code> method is expected to
+      return an opaque context for a given set of options. Later invocations of
+      the <code class="methodname">work</code> method will be passed a reference to
+      this opaque context, an LDAP <code class="classname">Entry</code> instance, and a
+      boolean value indicating whether the LDAP entry has been modified since
+      the last time the helper has run successfully. The
+      <code class="methodname">attributes</code> method should just return a tuple of
+      the LDAP attributes needed by a plugin.</p></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">OpenNMS User Synchronization </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Helper Class Implementation</td></tr></table></div></body></html>

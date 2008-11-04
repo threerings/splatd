@@ -1,0 +1,55 @@
+.\"     Title: splatd
+.\"    Author: Nick Barkas <snb@threerings.net>
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 2006-05-14
+.\"    Manual: Splat Man Pages
+.\"    Source: 
+.\"
+.TH "SPLATD" "8" "2006\-05\-14" "" "Splat Man Pages"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+splatd - Scalable Periodic LDAP Attribute Transmogrifier
+.SH "SYNOPSIS"
+.HP 7
+\fBsplatd\fR [\fB\-h\fR] [\fB\-d\fR] [\fB\-f\ \fR\fB\fIconfig\fR\fR] [\fB\-p\ \fR\fB\fIpidfile\fR\fR]
+.SH "DESCRIPTION"
+.PP
+Splat is a daemon designed to help keep information in an LDAP directory in sync with information outside of an LDAP directory\. This information can be any set of attributes on any object in the LDAP directory\.
+.SH "OPTIONS"
+.PP
+\fB\-h\fR
+.RS 4
+Show summary of options\.
+.RE
+.PP
+\fB\-d\fR
+.RS 4
+Debug mode\. Will not fork and run in the background\.
+.RE
+.PP
+\fB\-f\fR
+.RS 4
+Splat configuration file\.
+.RE
+.PP
+\fB\-p\fR
+.RS 4
+File to write daemon pid to\.
+.RE
+.SH "SEE ALSO"
+.PP
+
+\fBsplat.conf\fR(5)
+.PP
+
+\fI\%http://code.google.com/p/splatd\fR\.
+.SH "AUTHOR"
+.PP
+\fBNick Barkas\fR <\&snb@threerings\.net\&>
+.sp -1n
+.IP "" 4
+Author.
+.SH "COPYRIGHT"

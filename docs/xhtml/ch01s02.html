@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Configuring Splat</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="ch01.html" title="Chapter 1. Installing and Using Splat" /><link rel="prev" href="ch01.html" title="Chapter 1. Installing and Using Splat" /><link rel="next" href="ch01s03.html" title="Running Splat" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Configuring Splat</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Installing and Using Splat</th><td width="20%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr></table><hr /></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id393640"></a>Configuring Splat</h2></div></div></div><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id393646"></a>splat.conf</h3></div></div></div><p>Splat is configured by a configuration file usually named 
+        <code class="filename">splat.conf</code>. See the example config below (this
+        config file is also included with the Splat source), and the <a class="link" href="rn01re02.html" title="splat.conf">splat.conf man page</a>.</p><div class="example"><a id="id393668"></a><p class="title"><b>Example 1.1. Example splat.conf</b></p><div class="example-contents"><pre class="programlisting">
+            &lt;LDAP&gt;
+    # The LDAP Server configuration.
+    # URI of the server(s)
+    URI         ldaps://ldap1.example.com
+    # The default search base for the server
+    BaseDN      dc=example,dc=com
+    # The distinguished name to use to bind to the LDAP directory
+    # Both the BindDN and Password may be omitted, in which
+    # case an anonymous bind is made.
+    BindDN      cn=Manager,dc=example,dc=com
+    # The password (may be in LDAP MD5/SHA1 form, generate using slappasswd)
+    Password    {SSHA}0JjiKIXNxsrjzSRnFDDuJEM1wQLIMvv/
+&lt;/LDAP&gt;
+
+&lt;Logging&gt;
+    # Log messages at level INFO or higher
+    Level info
+    
+    # Log to syslog
+    &lt;syslog&gt;
+        Facility daemon
+        Address /var/run/log
+    &lt;/syslog&gt;
+
+#    # Log messages to stdout
+#    &lt;logfile&gt;
+#        Path STDOUT
+#    &lt;/logfile&gt;
+&lt;/Logging&gt;
+
+&lt;Service UserSSH&gt;
+    # The helper module
+    Helper          splat.helpers.sshPublicKeys
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.	
+    &lt;Option home&gt;
+    	# Only write keys to home directories in /home
+    	Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not write keys for users with a UID less than minuid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not write keys for users with a GID less than mingid
+    	Value 1000
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (&amp;(objectClass=sshAccount)(accountStatus=active))
+
+    # Group-specific options.
+
+    # Require that entries match one of the specified groups
+    RequireGroup    yes
+
+    # Only the first matching group is used, and groups are evaluated in the
+    # order specified. Groups must store member DNs, which groupOfUniqueNames 
+    # and groupOfNames object classes do. The posixGroup object class cannot be
+    # used because it stores member UIDs only.
+    &lt;Group Administrators&gt;
+        # The base DN to use when searching for groups
+        # Defaults to the LDAP BaseDN
+        SearchBase       ou=Groups,dc=example,dc=com
+        # The filter to use when searching for groups
+        SearchFilter     (&amp;(objectClass=groupOfUniqueNames)(cn=administrators))
+        # LDAP attribute used to store member DNs. Defaults to uniqueMember. 
+        MemberAttribute  uniqueMember
+    &lt;/Group&gt;
+
+    &lt;Group Developers&gt;
+        # The base DN to use when searching for groups
+        # Defaults to the LDAP BaseDN
+        SearchBase       ou=Groups,dc=example,dc=com
+        # The filter to use when searching for groups
+        SearchFilter     (&amp;(objectClass=groupOfUniqueNames)(cn=developers))
+
+        # Limit developers to using svn, rooted in /export/svn/repos
+        &lt;Option command&gt;
+            Value    /usr/local/bin/svnserve -t -r /export/svn/repos
+        &lt;/Option&gt;
+    &lt;/Group&gt;
+&lt;/Service&gt;
+
+&lt;Service MailForward&gt;
+    # The helper module
+    Helper          splat.helpers.mailForwardingAddress
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.	
+    &lt;Option home&gt;
+    	# Only write keys to home directories in /home
+    	Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not write keys for users with a UID less than minuid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not write keys for users with a GID less than mingid
+    	Value 1000
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (&amp;(objectClass=posixAccount)(accountStatus=active))
+&lt;/Service&gt;
+
+&lt;Service HomeDirectory&gt;
+    # The helper module
+    Helper          splat.helpers.homeDirectory
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.	
+    &lt;Option home&gt;
+    	# Only create home directories in /home
+    	Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not create directories for users with a UID less than minuid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not create directories for users with a GID less than mingid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option skeldir&gt;
+        # Skeletal home directory to copy files from. By default, created 
+        # home directories are empty.
+        Value /usr/share/skel
+    &lt;/Option&gt;
+    &lt;Option postcreate&gt;
+        # Script to execute post-homedir creation. Will be given the user's
+        # uid, gid, and home directory as arguments
+        Value /usr/local/libexec/splat-home-postcreate.sh
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (&amp;(objectClass=posixAccount)(accountStatus=active))
+&lt;/Service&gt;
+
+&lt;Service purgeUser&gt;
+    # The helper module
+    Helper          splat.helpers.purgeUser
+    # The frequency at which the daemon will poll LDAP
+    Frequency       10m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.	
+    &lt;Option home&gt;
+    	# Only purge/archive users with home directories in home
+    	Value /home
+    &lt;/Option&gt;
+    &lt;Option minuid&gt;
+        # Do not purge users with a UID less than minuid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option mingid&gt;
+        # Do not purge users with a GID less than mingid
+    	Value 1000
+    &lt;/Option&gt;
+    &lt;Option archivehomedir&gt;
+        # Archive home directory before purging? Defaults to true.
+        Value true
+    &lt;/Option&gt;
+    &lt;Option purgehomedir&gt;
+        # Actually purge home directory? Defaults to true.
+        Value true
+    &lt;/Option&gt;
+    &lt;Option purgehomearchive&gt;
+        # Eventually purge archive made of home directory, too? 
+        # Defaults to true.
+        Value true
+    &lt;/Option&gt;
+    &lt;Option archivedest&gt;
+        # Where to place archives of home directories, if 
+        # they are created. Defaults to /home.
+        Value /home
+    &lt;/Option&gt;
+    &lt;Option purgearchivewait&gt;
+        # Number of days to wait after pendingPurge time before 
+        # purging home archive, if purgehomearchive is set to 
+        # true. Defaults to 14.
+        Value 14
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (&amp;(objectClass=purgeableAccount)(accountStatus=disabled))
+&lt;/Service&gt;
+
+&lt;Service OpenNMS&gt;
+    # The helper module
+    Helper          splat.helpers.opennms
+    # The frequency at which the daemon will poll LDAP
+    Frequency       60m
+
+    # Helper-specific options. These are passed directly
+    # to the helper plugin.     
+    &lt;Option usersFile&gt;
+        Value /usr/local/opennms/etc/users.xml
+    &lt;/Option&gt;
+    &lt;Option groupsFile&gt;
+        Value /usr/local/opennms/etc/groups.xml
+    &lt;/Option&gt;
+    &lt;Option userNameAttribute&gt;
+        Value uid
+    &lt;/Option&gt;
+    &lt;Option fullNameAttribute&gt;
+        Value cn
+    &lt;/Option&gt;
+    &lt;Option emailAttribute&gt;
+        Value mail
+    &lt;/Option&gt;
+    &lt;Option xmppAddressAttribute&gt;
+        Value mail
+    &lt;/Option&gt;
+    &lt;Option commentsAttribute&gt;
+        Value title
+    &lt;/Option&gt;
+    &lt;Option opennmsGroup&gt;
+        Value Users
+    &lt;/Option&gt;
+
+    # The base DN to use when searching for entries.
+    # Defaults to the LDAP BaseDN.
+    SearchBase      ou=People,dc=example,dc=com
+    # The filer to use when searching for entries
+    SearchFilter    (&amp;(objectClass=sshAccount)(accountStatus=active))
+
+    # Group-specific options.
+
+    # Require that entries match one of the specified groups
+    RequireGroup    no
+
+    # Only the first matching group is used, and groups are evaluated in the
+    # order specified.
+    &lt;Group Administrators&gt;
+        # The base DN to use when searching for groups
+        # Defaults to the LDAP BaseDN
+        SearchBase       ou=Groups,dc=example,dc=com
+        # The filter to use when searching for groups
+        SearchFilter     (&amp;(objectClass=groupOfUniqueNames)(cn=administrators))
+        &lt;Option opennmsGroup&gt;
+            Value Administrators
+        &lt;/Option&gt;
+    &lt;/Group&gt;
+&lt;/Service&gt;
+
+          </pre></div></div><br class="example-break" /></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 1. Installing and Using Splat </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Running Splat</td></tr></table></div></body></html>

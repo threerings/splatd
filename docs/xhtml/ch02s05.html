@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Purge User Home Directories</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="ch02.html" title="Chapter 2. Included Modules" /><link rel="prev" href="ch02s04.html" title="User Mail Forward Files" /><link rel="next" href="ch02s06.html" title="OpenNMS User Synchronization" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Purge User Home Directories</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Included Modules</th><td width="20%" align="right"> <a accesskey="n" href="ch02s06.html">Next</a></td></tr></table><hr /></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id394199"></a>Purge User Home Directories</h2></div></div></div><p>The Home Directory Purging service module can archive, delete, 
+      and later delete archives of the home directories of users set to be
+      purgeable in LDAP.</p><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394212"></a>LDAP Schema</h3></div></div></div><p>We created a purgeableAccount schema in the Three Rings 
+        Enterprise OID space to keep track of the date and time at which an
+        LDAP user's home directory should be archived and deleted. The 
+        needed schema can be found in <code class="filename">schema/ooo.schema</code> 
+        and <code class="filename">schema/ooopa.schema</code> in the Splat 
+        distribution. These define a new object class <span class="emphasis"><em>
+        purgeableAccount</em></span> and a new optional attribute <span class="emphasis"><em>
+	pendingPurge</em></span>. The Home Directory Purging module utilizes
+	the <span class="emphasis"><em>pendingPurge</em></span> attribute to determine account
+	purgability.
+        </p><pre class="programlisting">
+attributetype ( oooPAAttributes:1 NAME 'pendingPurge'
+        DESC 'Timestamp of pending deletion date'
+        EQUALITY generalizedTimeMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE )
+
+objectclass ( oooPAClasses:1 NAME 'purgeableAccount'
+        DESC 'Purgeable Account'
+        SUP top AUXILIARY
+        MAY ( pendingPurge ) )
+        </pre></div><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394256"></a>Home Directory Purging Service Options</h3></div></div></div><p>
+          The Home Directory Purging module supports the following options. The 
+          <code class="computeroutput">home</code>, <code class="computeroutput">minuid
+          </code>, and <code class="computeroutput">mingid</code> options 
+          are not required to be set, but are useful for sanity checking.
+        </p><div class="variablelist"><dl><dt><span class="term">home</span></dt><dd><p>Only home directories that are subdirectories of the 
+              specified directory may be purged and/or archived.</p></dd><dt><span class="term">minuid</span></dt><dd><p>Do not purge/archive home directories for uids lower than 
+              minuid.</p></dd><dt><span class="term">mingid</span></dt><dd><p>Do not purge/archive home directories for gids lower than 
+              mingid.</p></dd><dt><span class="term">archivehomedir</span></dt><dd><p>Set to <code class="computeroutput">true</code> to archive 
+              a user's home directory before purging it. Defaults to true.
+              </p></dd><dt><span class="term">purgehomedir</span></dt><dd><p>Set to <code class="computeroutput">true</code> to purge 
+              a user's home directory after the <code class="computeroutput">pendingPurge
+              </code> time in the user's LDAP entry. Defaults to 
+              true. N.B. if this option and 
+              <code class="computeroutput">archivehomedir</code> are both set 
+              to <code class="computeroutput">false</code>, the plugin will do 
+              nothing.
+              </p></dd><dt><span class="term">purgehomearchive</span></dt><dd><p>Set to <code class="computeroutput">true</code> to delete  
+              the archive created of a user's home directory. This action will 
+              take place <code class="computeroutput">purgearchivewait</code> 
+              days after the archive was last modified (which will generally 
+              be when the archive was created). Defaults to true.
+              </p></dd><dt><span class="term">archivedest</span></dt><dd><p>Directory that homedir archives will be created and left 
+                in. Defaults to <code class="filename">/home</code>.
+              </p></dd><dt><span class="term">purgearchivewait</span></dt><dd><p>Number of days since its last modified time to wait before
+              deleting a homedir archive. Defaults to 14.</p></dd></dl></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">User Mail Forward Files </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> OpenNMS User Synchronization</td></tr></table></div></body></html>

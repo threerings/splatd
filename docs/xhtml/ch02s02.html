@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Home Directories</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="ch02.html" title="Chapter 2. Included Modules" /><link rel="prev" href="ch02.html" title="Chapter 2. Included Modules" /><link rel="next" href="ch02s03.html" title="OpenSSH Public Keys" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Home Directories</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Included Modules</th><td width="20%" align="right"> <a accesskey="n" href="ch02s03.html">Next</a></td></tr></table><hr /></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id393748"></a>Home Directories</h2></div></div></div><p>The Home Directory service module will query LDAP for users,
+      create a home directory if it does not already exist, copy in template
+      home directory, and optionally run a user supplied post-create
+      script.</p><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id393760"></a>LDAP Schema</h3></div></div></div><p>The Home Directory service module uses the standard RFC 2307 (or
+        2307bis) schema.</p></div><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id393772"></a>Home Directory Service Options</h3></div></div></div><p>The Home Directory service module supports sanity checking on
+        the uid, gid, and home directory, home directory templates, and 
+        optional post-create script.</p><div class="sect3" lang="en" xml:lang="en"><div class="titlepage"><div><div><h4 class="title"><a id="id393784"></a>Home Directory Service Options</h4></div></div></div><div class="variablelist"><dl><dt><span class="term">home</span></dt><dd><p>Only create home directories that are subdirectories of 
+                the specified directory.</p></dd><dt><span class="term">minuid</span></dt><dd><p>Do not create home directories for uids lower than 
+                minuid.</p></dd><dt><span class="term">mingid</span></dt><dd><p>Do not create home directories for gids lower than 
+                mingid.</p></dd><dt><span class="term">skeldir</span></dt><dd><p>Path to a template or skeletal home directory. If this 
+                option is used, files named with a prefix of dot. such as 
+                <code class="filename">dot.filename</code> will be copied to <code class="filename">
+                .filename</code> in the created home directory. Files 
+                without this dot. prefix will have the same name in the new 
+                home directory.</p></dd><dt><span class="term">postcreate</span></dt><dd><p>Execute a post-create command after the user's home
+                directory has been created. The command is passed the new
+                user's numeric uid, numeric gid, and the full path to the new
+                home directory.</p></dd></dl></div></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 2. Included Modules </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> OpenSSH Public Keys</td></tr></table></div></body></html>

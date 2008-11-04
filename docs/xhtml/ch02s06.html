@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>OpenNMS User Synchronization</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="ch02.html" title="Chapter 2. Included Modules" /><link rel="prev" href="ch02s05.html" title="Purge User Home Directories" /><link rel="next" href="ch03.html" title="Chapter 3. Writing New Modules" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">OpenNMS User Synchronization</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s05.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Included Modules</th><td width="20%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr></table><hr /></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id394441"></a>OpenNMS User Synchronization</h2></div></div></div><p>
+        The OpenNMS User Plugin was written to support synchronization of
+        user contact information with the <a class="ulink" href="http://www.opennms.org" target="_top">OpenNMS</a>
+        network management system. The plugin will synchronize users with OpenNMS
+        1.3's <code class="filename">users.xml</code> and <code class="filename">groups.xml</code>.
+      </p><p>
+        This plugin should be used in combination with
+        <a class="ulink" href="http://www.opennms.org/index.php/Acegi_Security_and_LDAP" target="_top">OpenNMS's Acegi LDAP authentication
+        support</a>.
+      </p><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394479"></a>OpenNMS User Synchronization Service Options</h3></div></div></div><p>
+          The OpenNMS User Synchronization service module supports
+          synchronizing contact information with arbitrary LDAP
+          attributes.
+        </p><div class="sect3" lang="en" xml:lang="en"><div class="titlepage"><div><div><h4 class="title"><a id="id394491"></a>OpenNMS Service Options</h4></div></div></div><div class="variablelist"><dl><dt><span class="term">usersFile</span></dt><dd><p>Location of the OpenNMS <code class="filename">users.xml</code> file.</p></dd><dt><span class="term">groupsFile</span></dt><dd><p>
+                  Location of the OpenNMS <code class="filename">groups.xml</code> file.
+                </p></dd><dt><span class="term">opennmsGroup</span></dt><dd><p>
+                  Specifies the OpenNMS group in which to place the user.
+                  Future versions of this plugin are expected to support mapping
+                  of arbitrary LDAP groups to OpenNMS groups.
+                </p></dd><dt><span class="term">userNameAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's login name (eg: uid).
+                </p></dd><dt><span class="term">fullNameAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's full name (eg: cn).
+                </p></dd><dt><span class="term">commentsAttribute</span></dt><dd><p>
+                  LDAP attribute containing OpenNMS user comments (eg: title).
+                </p></dd><dt><span class="term">emailAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's primary e-mail address (eg: mail).
+                </p></dd><dt><span class="term">xmppAddressAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's XMPP (Jabber) address.
+                </p></dd><dt><span class="term">numericPagerAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's numeric pager number.
+                </p></dd><dt><span class="term">numericPagerServiceAttribute</span></dt><dd><p>
+                  LDAP attribute containing the user's numeric pager service name.
+                </p></dd><dt><span class="term">textPager</span></dt><dd><p>
+                  LDAP attribute containing the user's text pager number.
+                </p></dd><dt><span class="term">textPagerService</span></dt><dd><p>
+                  LDAP attribute containing the user's text pager service name.
+                </p></dd></dl></div></div></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Purge User Home Directories </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 3. Writing New Modules</td></tr></table></div></body></html>

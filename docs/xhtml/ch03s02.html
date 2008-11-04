@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Helper Class Implementation</title><link rel="stylesheet" href="docbook.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.73.2" /><link rel="start" href="index.html" title="Splat: Scalable Periodic LDAP Attribute Transmogrifier" /><link rel="up" href="ch03.html" title="Chapter 3. Writing New Modules" /><link rel="prev" href="ch03.html" title="Chapter 3. Writing New Modules" /><link rel="next" href="rn01.html" title="Splat Man Pages" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Helper Class Implementation</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Writing New Modules</th><td width="20%" align="right"> <a accesskey="n" href="rn01.html">Next</a></td></tr></table><hr /></div><div class="sect1" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id394777"></a>Helper Class Implementation</h2></div></div></div><p>Splat Helper Modules are implemented as a Python module containing
+      a single subclass of
+      <code class="computeroutput">splat.plugin.Helper</code>. The subclass must
+      implement three methods: <code class="methodname">parseOptions</code>,
+      <code class="methodname">work</code>, and
+      <code class="methodname">attributes</code>.</p><p>For a working example, refer to the SSH public key helper located
+      in <code class="filename">splat/helpers/sshPublicKeys.py</code>.</p><div class="example"><a id="id394812"></a><p class="title"><b>Example 3.1. Skeleton of Splat Helper Module</b></p><div class="example-contents"><pre class="programlisting">
+class MyHelper(splat.plugin.Helper):
+    @classmethod
+    def attributes(self):
+        ...
+    @classmethod
+    def parseOptions(self, options):
+        ...
+    def work(self, context, ldapEntry, modified):
+        ...
+        </pre></div></div><br class="example-break" /><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394826"></a>Error Handling and Logging</h3></div></div></div><p>If an error occurs, your module must raise an exception of type
+        <code class="classname">splat.plugin.SplatPluginError</code>, with an error
+        message provided as the second argument. This error will be presented
+        to the user by the splat daemon.</p><pre class="programlisting">raise splat.plugin.SplatPluginError, "No such user"</pre><p>Logging is provided by the standard logging module. To find the
+        Splat logger, use <code class="varname">splat.LOG_NAME</code>:</p><pre class="programlisting">logger = logging.getLogger(splat.LOG_NAME)</pre></div><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394860"></a>Parsing Configuration Options</h3></div></div></div><p>Helper-specific configuration options may be specified in the
+        <code class="filename">splat.conf</code> configuration file. These options are
+        passed to the helper's <code class="methodname">parseOptions</code> method as
+        a dictionary of key/value strings. These options are not validated by
+        the configuration parser -- it is your responsibility to validate
+        these strings and convert them to the appropriate data type.</p><div class="example"><a id="id394883"></a><p class="title"><b>Example 3.2. Helper Module parseOptions() Method</b></p><div class="example-contents"><pre class="programlisting">
+def parseOptions(self, options):
+    context = {}
+
+    for key in options.keys():
+        if (key == 'minuid'):
+            context['minuid'] = int(options[key])
+            continue
+        raise splat.plugin.SplatPluginError, "Invalid options '%s' specified." % key
+
+    return context
+            </pre></div></div><br class="example-break" /></div><div class="sect2" lang="en" xml:lang="en"><div class="titlepage"><div><div><h3 class="title"><a id="id394899"></a>Handling LDAP Entries</h3></div></div></div><p>The splat daemon will perform an LDAP search on the helper's
+        behalf, filter based on group restrictions, and pass individual LDAP
+        <code class="classname">Entry</code> instances to the
+        <code class="methodname">work</code> method. The following method arguments
+        are provided:</p><div class="variablelist"><dl><dt><span class="term">context</span></dt><dd><p>The opaque configuration context corresponding with the
+                supplied entry.</p></dd><dt><span class="term">entry</span></dt><dd><p>An LDAP <code class="classname">Entry</code> instance..</p></dd><dt><span class="term">modified</span></dt><dd><p>If true, the supplied LDAP entry has been modified since
+                the last <span class="emphasis"><em>successful</em></span> helper iteration.  This
+                can be used to avoid doing unnecessary work in the helper, such
+                as overwriting identical ssh keys.
+                <code class="computeroutput">modified</code> will also be set to
+                true if the <code class="computeroutput">modifyTimestamp</code>
+                attribute was not found in an LDAP entry. This helps ensure
+                that helpers will still be able to function when this
+                attribute is not available for whatever reason.</p></dd></dl></div><p>The <code class="classname">Entry</code> class provides two instance
+        variables: <code class="varname">dn</code> and <code class="varname">attributes</code>.
+        The <code class="varname">dn</code> variable provides the corresponding LDAP
+        object's full <code class="computeroutput">DN</code>, while
+        <code class="varname">attributes</code> provides a dictionary of LDAP attributes
+        and corresponding lists of values. The desired LDAP object attributes
+        must be provided by the <code class="methodname">attributes()</code> method
+        of your <code class="classname">splat.plugin.Helper</code> subclass; these
+        LDAP attributes will used in the LDAP search and will be returned if
+        available.</p><p>In addition to any requested attributes, the
+        <code class="computeroutput">modifyTimestamp</code> operational attribute
+        will always be returned. This can be used by your helper to determine
+        if any work should be done; For example, the SSH Public Key helper
+        will <code class="function">stat()</code> the user's key file and compare the
+        two modification dates to determine whether the key should be
+        updated.</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Caution</h3><p>The helper's <code class="methodname">attributes()</code> method
+          defines the LDAP object attributes that you are interested in -- an
+          LDAP Entry will still be returned if it does not contain all of your
+          requested attributes, and/or the 
+          <code class="computeroutput">modifyTimestamp</code> attribute. It is your
+          responsibility to ensure that any attributes required by your helper 
+          are supplied.</p></div><div class="example"><a id="id395064"></a><p class="title"><b>Example 3.3. Helper Module attributes() and work() Methods</b></p><div class="example-contents"><pre class="programlisting">
+class MyHelper(splat.plugin.Helper):
+    def attributes(self):
+        return ('uid', 'sshPublicKey')
+    def work(self, context, ldapEntry, modified):
+        # If the entry has not been modified since our last run, skip it.
+        if (not modified):
+            return
+
+        if (not ldapEntry.attributes.has_key('sshPublicKey'))
+            return
+
+        key = attributes.get('sshPublicKey')[0]
+          </pre></div></div><br class="example-break" /></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="rn01.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 3. Writing New Modules </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Splat Man Pages</td></tr></table></div></body></html>

@@ -1,0 +1,204 @@
+.\"     Title: splat.conf
+.\"    Author: Nick Barkas <snb@threerings.net>
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 2006-05-14
+.\"    Manual: Splat Man Pages
+.\"    Source: 
+.\"
+.TH "SPLAT\.CONF" "5" "2006\-05\-14" "" "Splat Man Pages"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+splat.conf - Scalable Periodic LDAP Attribute Transmogrifier configuration file
+.SH "INTRODUCTION"
+.PP
+The Splat configuration file is composed of three different section types:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'LDAP Configuration
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Service Helper Configuration
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Logging Configuration
+.RE
+.sp
+.RE
+The configuration uses an Apache\-style syntax:
+.sp
+.RS 4
+.nf
+<LDAP>
+    # The LDAP Server configuration\.
+    # URI of the server(s)
+    URI         ldaps://ldap1\.example\.com
+    # The default search base for the server
+    BaseDN      dc=example,dc=com
+</LDAP>
+                    
+.fi
+.RE
+.SH "LDAP CONFIGURATION"
+.PP
+The
+LDAP
+section defines connection parameters for your LDAP server, and may appear once within a Splat configuration file\. If you make use of SSL/TLS, you will need to ensure that the appropriate settings are enabled in your system
+\fIldap\.conf\fR
+(e\.g\.
+TLS_CACERT
+or
+TLS_CACERTDIR, if necessary)\.
+.SS "LDAP Configuration Options"
+.PP
+URI
+.RS 4
+URI of the LDAP server(s)\.
+.RE
+.PP
+BaseDN
+.RS 4
+Default Search Base DN\.
+.RE
+.PP
+BindDN
+.RS 4
+LDAP Bind DN\. If omitted, Slap will use an anonymous bind\.
+.RE
+.PP
+Password
+.RS 4
+LDAP Bind Password\.
+.RE
+.SH "LOGGING CONFIGURATION"
+.PP
+The
+Logging
+section configures logging for the Splat daemon\. It is composed of any number of
+syslog
+or
+logfile
+subsections and a global
+Level
+setting\.
+.PP
+Level
+.RS 4
+Log Verbosity\. One of: debug, info, warning, error, critical
+.RE
+.SS "Syslog Configuration Options"
+.PP
+Facility
+.RS 4
+Syslog Facility\.
+.RE
+.PP
+Address
+.RS 4
+Address of syslog server, or pathname to syslog socket\. This varies between hosts\. FreeBSD\'s syslog socket is located at
+\fI/var/run/log\fR, while Linux systems often use
+\fI/dev/log\fR\.
+.RE
+.SS "Logfile Configuration Options"
+.PP
+Path
+.RS 4
+Path to log file, or reference to Python file object such as STDOUT\.
+.RE
+.SH "SERVICE HELPER CONFIGURATION"
+.PP
+The
+Service
+section configures Splat\'s service helper modules\. It is composed service\-specific settings, including any number of
+Option, and
+Group
+subsections\. Group and Service names (such as
+\fIUserSSH\fR
+or
+\fIAdministrators\fR) must be unique within their scope, but are not interpreted by Splat in any other way\.
+.PP
+Option
+subsections may be specified in both the Service section and the Group subsection\. Options are used to set and unset helper\-specific settings\. Module options are documented in the module\-specific documentation\. Example:
+.sp
+.RS 4
+.nf
+<Option mingid>
+  # Do not write keys for users with a GID less than mingid
+  Value 1000
+</Option> 
+  
+# Unset the Command option
+<Option command/>
+.fi
+.RE
+.SS "Service Configuration Options"
+.PP
+Helper
+.RS 4
+Python Helper Module\. Example: splat\.helpers\.sshPublicKeys
+.RE
+.PP
+Frequency
+.RS 4
+Frequency at which helper is invoked\. Units may be specified in hours (h), minutes (m), or seconds (s)\.
+.RE
+.PP
+SearchBase
+.RS 4
+LDAP search base\. If left unspecified, defaults to the BaseDN specified in the LDAP configuration section\.
+.RE
+.PP
+SearchFilter
+.RS 4
+LDAP search filter\. All records that match this filter (and, optionally, are members of a permitted group) will be passed to the service helper module\.
+.RE
+.PP
+RequireGroup (yes/no)
+.RS 4
+Require that returned entries match one of the specified Groups\.
+.RE
+.SS "Group Configuration Options"
+.PP
+SearchBase
+.RS 4
+LDAP search base\. If left unspecified, defaults to the BaseDN specified in the LDAP configuration section\.
+.RE
+.PP
+SearchFilter
+.RS 4
+LDAP search filter\. All records that match this filter will determine this groups membership\. The filter should return groupOfUniqueNames or groupOfNames objects\. I suggest using RFC2307bis to combine posixGroup and groupOfUniqueName\.
+.RE
+.PP
+MemberAttribute
+.RS 4
+LDAP attribute used to store member DNs\. Defaults to uniqueMember\.
+.RE
+.SH "EXAMPLES"
+.PP
+An example configuration file
+\fIsplat\.conf\fR
+is included with the Splat source\.
+.SH "SEE ALSO"
+.PP
+
+\fBsplatd\fR(8)
+\fBldap.conf\fR(5)
+.PP
+
+\fI\%http://code.google.com/p/splatd\fR\.
+.SH "AUTHORS"
+.PP
+\fBNick Barkas\fR <\&snb@threerings\.net\&>
+.sp -1n
+.IP "" 4
+Author.
+.PP
+\fBLandon Fuller\fR <\&landonf@threerings\.net\&>
+.sp -1n
+.IP "" 4
+Author.
+.SH "COPYRIGHT"
