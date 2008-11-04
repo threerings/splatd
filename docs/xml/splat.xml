@@ -15,7 +15,7 @@
     </legalnotice>
 
     <copyright>
-      <year>2005 - 2007</year>
+      <year>2005 - 2008</year>
 
       <holder>Landon Fuller, Nick Barkas, and Three Rings Design, Inc.</holder>
     </copyright>
@@ -73,6 +73,20 @@
           <listitem>
             <para><ulink
             url="http://www.zope.org/Members/fdrake/zconfig/">ZConfig</ulink></para>
+          </listitem>
+        </itemizedlist>
+        
+        <para>Also, to use the OpenNMS plugin, the following additional 
+        components must be installed:</para>
+        <itemizedlist>
+          <listitem>
+            <para><ulink url="http://pysqlite.org/">pysqlite2</ulink></para>
+          </listitem>
+          
+          <listitem>
+            <para>Either <ulink url="http://effbot.org/zone/celementtree.htm"> 
+            cElementTree</ulink> or <ulink url="http://www.python.org">Python 
+            2.5</ulink>, which includes this module.</para>
           </listitem>
         </itemizedlist>
       </sect2>
