@@ -1,0 +1,9 @@
+splatd (1.2)
+
+ * First release with changelog
+ * User LDAP records are now considered modified if any groups the user is a
+   member of that match a required group for the plugin are modified. Fixes
+   http://code.google.com/p/splatd/issues/detail?id=1&can=1
+ * Minor documentation updates
+
+ -- Nick Barkas <snb@threerings.net>  Tue, 04 Nov 2008 13:33:57 +0100

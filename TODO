@@ -1,7 +1,3 @@
-- Check all groups that a user is a member of for modification time in addition
-  to checking ther user record's own modifiedTime.
-- Mention in manual that OpenNMS plugin needs pysqlite2 and cElementTree (or
-  Python 2.5).
 - Minimize code duplication in plugin parseOptions() methods by extending  
   ZConfig. 
 - Plugins for cleaning up mediawiki and bugzilla databases when accounts are
