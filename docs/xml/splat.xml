@@ -979,7 +979,7 @@ class MyHelper(splat.plugin.Helper):
           </citerefentry>
         </para>
         <para>
-          <ulink url="http://dpw.threerings.net/projects/splat"/>.
+          <ulink url="http://code.google.com/p/splatd"/>.
         </para>
       </refsect1>
     </refentry>
@@ -1292,7 +1292,7 @@ class MyHelper(splat.plugin.Helper):
           </citerefentry>
         </para>
         <para>
-          <ulink url="http://dpw.threerings.net/projects/splat"/>.
+          <ulink url="http://code.google.com/p/splatd"/>.
         </para>
       </refsect1>
     </refentry>
