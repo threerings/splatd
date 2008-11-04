@@ -1097,21 +1097,24 @@ class MyHelper(splat.plugin.Helper):
         <para>The <computeroutput>Logging</computeroutput> section configures
         logging for the Splat daemon. It is composed of any number of
         <computeroutput>syslog</computeroutput> or
-        <computeroutput>logfile</computeroutput> subsections.</para>
+        <computeroutput>logfile</computeroutput> subsections and a global 
+        <computeroutput>Level</computeroutput> setting.</para>
+
+        <variablelist>
+          <varlistentry>
+            <term>Level</term>
+
+            <listitem>
+              <para>Log Verbosity. One of: debug, info, warning, error,
+              critical</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
 
         <refsect2>
           <title>Syslog Configuration Options</title>
 
           <variablelist>
-            <varlistentry>
-              <term>Level</term>
-
-              <listitem>
-                <para>Log Verbosity. One of: debug, info, warning, error,
-                critical</para>
-              </listitem>
-            </varlistentry>
-
             <varlistentry>
               <term>Facility</term>
 
@@ -1137,15 +1140,6 @@ class MyHelper(splat.plugin.Helper):
           <title>Logfile Configuration Options</title>
 
           <variablelist>
-            <varlistentry>
-              <term>Level</term>
-
-              <listitem>
-                <para>Log Verbosity. One of: debug, info, warning, error,
-                critical</para>
-              </listitem>
-            </varlistentry>
-
             <varlistentry>
               <term>Path</term>
 
