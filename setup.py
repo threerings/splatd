@@ -42,7 +42,7 @@ EMAIL = splat.__author_email__
 LICENSE = splat.__license__
 
 setup(
-    name = "splat",
+    name = "splatd",
     version = VERSION,
     author = AUTHOR,
     author_email = EMAIL,
