@@ -1,9 +1,16 @@
 - Minimize code duplication in plugin parseOptions() methods by extending  
   ZConfig. 
-- Plugins for cleaning up mediawiki and bugzilla databases when accounts are
+- Plugins for cleaning up MediaWiki and Bugzilla databases when accounts are
   deleted.
 - Make ./setup.py install also install man pages and perhaps xhtml 
   documentation to a sensible place.
+- Plugin to add users to password and group files, in case LDAP is not used
+  directly for authorization. This could be useful in cases where authentication
+  is handled purely by e.g. Kerberos or SSH keys, user and group information is
+  kept in an LDAP directory, and it is desirable to keep the system accessible 
+  when LDAP servers are unreachable. Unfortunately this probably cannot be done
+  in a cross platform way. The plugin could call pw(8) on FreeBSD, dscl(1) on
+  Mac OS X, and perhaps useradd(8)/usermod(8)/etc. on Linux.
 
 These items are more like a wishlist than actual planned features:
 
