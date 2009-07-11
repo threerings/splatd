@@ -19,14 +19,14 @@
 SOURCEDIR?=		xml
 # Install docbook-xsl and set $DOCBOOK_XSL to 
 # /usr/share/xml/docbook/stylesheet/nwalsh for this to work on Ubuntu/Debian
-DOCBOOK_XSL?=	        ${PREFIX}/share/xsl/docbook-xsl/
+DOCBOOK_XSL?=	        /usr/local/share/xsl/docbook
 XHTMLDIR?=		xhtml
 MANDIR?=		man
 STYLESHEET?=	        ${DOCBOOK_XSL}/html/chunk.xsl
 XSTYLESHEET?=	        ${DOCBOOK_XSL}/xhtml/chunk.xsl
 MANSTYLESHEET?=		${DOCBOOK_XSL}/manpages/docbook.xsl
-XML_CATALOG_FILES?=	${PREFIX}/etc/xml/catalog
-XML_DEBUG_CATALOG?=
+#XML_CATALOG_FILES?=	${PREFIX}/etc/xml/catalog
+#XML_DEBUG_CATALOG?=
 CSS_STYLESHEET?=	docbook.css
 RESOURCES?=		resources/
 USERLEVEL?=		user
@@ -44,7 +44,7 @@ all: xhtml man
 
 xhtml:
 	mkdir -p ${XHTMLDIR}
-	install ${RESOURCES}${CSS_STYLESHEET} ${XHTMLDIR}
+	install -m 644 ${RESOURCES}${CSS_STYLESHEET} ${XHTMLDIR}
 	xsltproc --nonet --xinclude ${STRINGPARAMS} -o "${XHTMLDIR}/" "${XSTYLESHEET}" "${SOURCEDIR}/splat.xml"
 
 man:
