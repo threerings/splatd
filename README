@@ -1,5 +1,0 @@
-SPLAT: Scalable Periodic LDAP Attribute Transmogrifier
-
-	Splat is a daemon designed to help keep information in an LDAP directory in sync with information outside of an LDAP directory.  This information can be any set of attributes on any object in the LDAP directory.
-
-splatd          Splat Daemon
